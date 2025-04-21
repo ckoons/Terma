@@ -1,56 +1,93 @@
-# Terma Terminal System
+# Terma: Terminal Integration for Tekton
 
-<div align="center">
-  <img src="images/icon.png" alt="Terma Logo" width="200"/>
-  <h3>Terma<br>Full-Featured Terminal Integration for Tekton</h3>
-</div>
+Terma is an advanced terminal system designed for integration with the Tekton ecosystem. It provides rich terminal functionality with features such as PTY-based terminal sessions, WebSocket communication, LLM assistance, and Hephaestus UI integration.
 
-Terma is a comprehensive terminal integration system for the Tekton AI orchestration platform. It provides both embedded browser-based terminals and native system terminals with seamless LLM integration.
+\![Terma Terminal](./images/icon.jpg)
 
-## Overview
+## Features
 
-Terma serves as the terminal interface layer between users and Tekton's AI capabilities. It provides a flexible, powerful terminal environment that can be embedded within the Hephaestus UI or launched as a standalone application.
+- **PTY-based Terminal**: Full terminal emulation with support for interactive applications
+- **WebSocket Communication**: Real-time terminal interaction
+- **Session Management**: Create, manage, and monitor terminal sessions
+- **LLM Assistance**: Get AI-powered help with terminal commands
+- **Hermes Integration**: Seamless communication with other Tekton components
+- **Hephaestus UI Integration**: Rich terminal UI for Hephaestus
+- **CLI Tools**: Command-line tools for terminal management
 
-### Key Features
+## Quick Start
 
-- **Dual Interface** - Works both embedded in browser and as standalone terminal
-- **Full Terminal Capabilities** - Complete shell access with all terminal features
-- **LLM Integration** - Seamless communication with Tekton's LLM services
-- **Session Management** - Persistent sessions across interfaces
-- **Customizable** - Configurable appearance and behavior
-
-## Installation
+### Installation
 
 ```bash
-# Set up Terma with package dependencies
-./component-setup.sh Terma
+# Clone the repository
+git clone https://github.com/yourusername/Tekton.git
+cd Tekton/Terma
+
+# Install dependencies
+./setup.sh
+
+# Start the server
+python -m terma.cli.main
 ```
 
-## Usage
+### Basic Usage
 
-Terma can be used in two primary modes:
-
-### Embedded Browser Terminal
-
-Access the terminal directly within the Hephaestus UI in the RIGHT PANEL section. This provides a seamless experience for quick interactions.
-
-### Standalone System Terminal
-
-Launch a dedicated terminal window for more intensive terminal work:
+Create a terminal session:
 
 ```bash
-# Launch a standalone Terma terminal
-python -m terma.cli.launch
+curl -X POST http://localhost:8765/api/sessions \
+  -H "Content-Type: application/json" \
+  -d '{"shell_command": "/bin/bash"}'
 ```
 
-## Integration
+Connect to the terminal via WebSocket:
 
-Terma integrates with:
+```javascript
+const socket = new WebSocket("ws://localhost:8765/ws/your-session-id");
 
-- **Hephaestus**: For UI embedding
-- **Hermes**: For message passing and LLM communication
-- **Rhetor**: For advanced prompt engineering (future)
+socket.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    if (message.type === "output") {
+        console.log(message.data);
+    }
+};
+
+socket.send(JSON.stringify({
+    type: "input",
+    data: "ls -la\n"
+}));
+```
+
+### Hephaestus Integration
+
+To install Terma in Hephaestus:
+
+```bash
+./install_in_hephaestus.sh
+```
+
+Then open Hephaestus and select the Terma Terminal component.
+
+## Documentation
+
+- [Architecture](./docs/architecture.md): System design and component interactions
+- [API Reference](./docs/api_reference.md): API reference for both REST and WebSocket interfaces
+- [Integration](./docs/integration.md): How to integrate with other Tekton components
+- [Usage](./docs/usage.md): Detailed usage examples for both embedded and standalone modes
+
+## System Requirements
+
+- Python 3.8 or higher
+- FastAPI and Uvicorn
+- WebSockets support
+- PTY process support (Linux, macOS, or WSL on Windows)
 
 ## License
 
-MIT License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgements
+
+- Terma is part of the Tekton ecosystem, an intelligent orchestration system that coordinates multiple AI models and resources.
+- Special thanks to the Tekton team for their support and collaboration.
+EOF < /dev/null
