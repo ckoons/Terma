@@ -50,6 +50,9 @@ class TermaComponent {
             // Load required styles and scripts
             await this.loadDependencies();
             
+            // Connect to the Hephaestus settings manager
+            this.connectToSettingsManager();
+            
             // Set up event handlers
             this.setupEventHandlers();
             
@@ -65,6 +68,93 @@ class TermaComponent {
         } catch (error) {
             console.error('Error initializing Terma component:', error);
             return false;
+        }
+    }
+    
+    /**
+     * Connect to the Hephaestus settings manager
+     */
+    connectToSettingsManager() {
+        if (window.settingsManager) {
+            this.log('Connected to Hephaestus settings manager');
+            
+            // Get terminal settings from global settings manager
+            const settings = window.settingsManager.settings;
+            
+            // Override current terminal mode if set in settings
+            if (settings.terminalMode) {
+                this.currentTerminalMode = settings.terminalMode;
+            }
+            
+            // Update title based on Greek/functional name setting
+            this.updateTitle();
+            
+            // Listen for names settings changes
+            window.settingsManager.addEventListener('namesChanged', () => {
+                this.updateTitle();
+            });
+            
+            // Listen for terminal settings changes
+            window.settingsManager.addEventListener('terminalModeChanged', (event) => {
+                this.log(`Terminal mode changed to: ${event.mode}`);
+                if (this.currentTerminalMode !== event.mode) {
+                    this.currentTerminalMode = event.mode;
+                    this.toggleTerminalMode();
+                }
+            });
+            
+            window.settingsManager.addEventListener('terminalFontSizeChanged', (event) => {
+                if (this.termaTerminal) {
+                    this.termaTerminal.updateOption('fontSize', event.size);
+                }
+            });
+            
+            window.settingsManager.addEventListener('terminalFontFamilyChanged', (event) => {
+                if (this.termaTerminal) {
+                    this.termaTerminal.updateOption('fontFamily', event.fontFamily);
+                }
+            });
+            
+            window.settingsManager.addEventListener('terminalThemeChanged', (event) => {
+                if (this.termaTerminal) {
+                    this.termaTerminal.updateOption('theme', event.theme);
+                }
+            });
+            
+            window.settingsManager.addEventListener('terminalCursorStyleChanged', (event) => {
+                if (this.termaTerminal) {
+                    this.termaTerminal.updateOption('cursorStyle', event.cursorStyle);
+                }
+            });
+            
+            window.settingsManager.addEventListener('terminalCursorBlinkChanged', (event) => {
+                if (this.termaTerminal) {
+                    this.termaTerminal.updateOption('cursorBlink', event.cursorBlink);
+                }
+            });
+            
+            window.settingsManager.addEventListener('terminalScrollbackChanged', (event) => {
+                if (this.termaTerminal) {
+                    this.termaTerminal.updateOption('scrollback', event.scrollback);
+                }
+            });
+            
+            window.settingsManager.addEventListener('terminalScrollbackLinesChanged', (event) => {
+                if (this.termaTerminal) {
+                    this.termaTerminal.updateOption('scrollback', event.scrollback ? event.lines : 0);
+                }
+            });
+            
+            window.settingsManager.addEventListener('terminalSettingsChanged', (event) => {
+                if (this.termaTerminal) {
+                    // Apply all settings at once
+                    Object.entries(event.settings).forEach(([key, value]) => {
+                        this.termaTerminal.updateOption(key, value);
+                    });
+                }
+            });
+        } else {
+            this.log('Hephaestus settings manager not found, using local settings');
         }
     }
     
@@ -282,15 +372,59 @@ class TermaComponent {
                 throw new Error('Failed to load TermaTerminal class');
             }
             
-            // Create terminal instance
-            this.termaTerminal = new TermaTerminal({
+            // Use settings from the Hephaestus settings manager if available
+            let terminalOptions = {
                 containerId: 'terma-terminal',
                 serverUrl: this.options.serverUrl,
                 wsUrl: this.options.wsUrl
-            });
+            };
+            
+            // Apply settings from the Hephaestus settings manager if available
+            if (window.settingsManager) {
+                const settings = window.settingsManager.settings;
+                
+                // Map Hephaestus settings to Terma terminal options
+                if (settings.terminalFontSizePx) terminalOptions.fontSize = settings.terminalFontSizePx;
+                if (settings.terminalFontFamily) terminalOptions.fontFamily = settings.terminalFontFamily;
+                if (settings.terminalTheme) terminalOptions.theme = settings.terminalTheme;
+                if (settings.terminalCursorStyle) terminalOptions.cursorStyle = settings.terminalCursorStyle;
+                if (settings.terminalCursorBlink !== undefined) terminalOptions.cursorBlink = settings.terminalCursorBlink;
+                if (settings.terminalScrollback !== undefined) {
+                    if (settings.terminalScrollback && settings.terminalScrollbackLines) {
+                        terminalOptions.scrollback = settings.terminalScrollbackLines;
+                    } else {
+                        terminalOptions.scrollback = 0; // Disable scrollback
+                    }
+                }
+                
+                this.log('Applied Hephaestus settings to terminal');
+            }
+            
+            // Create terminal instance with combined options
+            this.termaTerminal = new TermaTerminal(terminalOptions);
             
             // Initialize terminal
             await this.termaTerminal.init();
+            
+            // Make settings button open the Hephaestus settings panel
+            if (this.elements.settingsBtn) {
+                this.elements.settingsBtn.removeEventListener('click', this.showSettingsModal);
+                this.elements.settingsBtn.addEventListener('click', () => {
+                    // Open Hephaestus settings panel and show Terminal section
+                    if (window.tektonUI && window.tektonUI.showSettingsPanel) {
+                        window.tektonUI.showSettingsPanel();
+                        
+                        // Focus on terminal settings section (delayed to ensure settings UI is loaded)
+                        setTimeout(() => {
+                            const terminalSettings = document.querySelector('.settings-section:has(h3:contains("Terminal Settings"))');
+                            if (terminalSettings) {
+                                terminalSettings.scrollIntoView({ behavior: 'smooth' });
+                            }
+                        }, 300);
+                    }
+                });
+            }
+            
             this.log('Advanced terminal initialized');
             return true;
         } catch (error) {
@@ -450,6 +584,22 @@ class TermaComponent {
     }
     
     /**
+     * Update title based on Greek/functional name setting
+     */
+    updateTitle() {
+        const titleElement = document.getElementById('terma-title');
+        if (titleElement && window.settingsManager) {
+            const showGreekNames = window.settingsManager.settings.showGreekNames;
+            if (showGreekNames) {
+                titleElement.textContent = titleElement.getAttribute('data-greek-name') || 'Terma - Terminal';
+            } else {
+                titleElement.textContent = titleElement.getAttribute('data-functional-name') || 'Terminal';
+            }
+            this.log(`Updated title to: ${titleElement.textContent}`);
+        }
+    }
+    
+    /**
      * Register with Tekton UI if available
      */
     registerWithTektonUI() {
@@ -457,6 +607,9 @@ class TermaComponent {
             window.tektonUI.registerComponentHandler('terma', {
                 onActivate: () => {
                     this.log('Terma component activated');
+                    
+                    // Update title based on current settings
+                    this.updateTitle();
                     
                     // Resize terminal if needed
                     if (this.termaTerminal && this.currentTerminalMode === 'advanced') {

@@ -52,67 +52,36 @@ ln -sf "${SCRIPT_DIR}/ui/hephaestus/css/terma-hephaestus.css" "${HEPHAESTUS_DIR}
 # Add the component to the Hephaestus component registry
 REGISTRY_FILE="${HEPHAESTUS_DIR}/ui/server/component_registry.json"
 
-# Read the current registry
-if [ -f "$REGISTRY_FILE" ]; then
-    REGISTRY_CONTENT=$(cat "$REGISTRY_FILE")
-    
-    # Check if Terma is already registered
-    if [[ "$REGISTRY_CONTENT" == *"\"terma\""* ]]; then
-        echo "Terma component is already registered in Hephaestus"
-    else
-        # Add Terma to the registry
-        echo "Adding Terma to the Hephaestus component registry..."
-        
-        # Create a temporary file without the final closing bracket
-        echo "${REGISTRY_CONTENT%\}*}" > "${REGISTRY_FILE}.tmp"
-        
-        # Append Terma component entry
-        if [[ "$(cat "${REGISTRY_FILE}.tmp")" == *"}"* ]]; then
-            # If there are other components, add a comma
-            echo "," >> "${REGISTRY_FILE}.tmp"
-        fi
-EOFSCRIPT < /dev/null        
-        cat >> "${REGISTRY_FILE}.tmp" << 'EOF'
-    "terma": {
-        "name": "Terma Terminal",
-        "description": "Advanced terminal with PTY integration and LLM assistance",
-        "icon": "terminal",
-        "componentPath": "components/terma/terma-component.html",
-        "scripts": [
-            "scripts/terma/terma-component.js"
-        ],
-        "styles": [
-            "styles/terma/terma-hephaestus.css"
-        ],
-        "position": "right-panel"
-    }
-}
-EOF
-        
-        # Replace the registry file
-        mv "${REGISTRY_FILE}.tmp" "$REGISTRY_FILE"
-    fi
+# Check if Terma is already in the component registry
+if grep -q "\"id\": \"terma\"" "$REGISTRY_FILE"; then
+    echo "Terma is already in the component registry"
 else
-    # Create a new registry file with Terma component
-    echo "Creating new Hephaestus component registry with Terma component..."
+    echo "Adding Terma to the component registry..."
     
-    cat > "$REGISTRY_FILE" << 'EOF'
-{
-    "terma": {
-        "name": "Terma Terminal",
-        "description": "Advanced terminal with PTY integration and LLM assistance",
-        "icon": "terminal",
-        "componentPath": "components/terma/terma-component.html",
-        "scripts": [
-            "scripts/terma/terma-component.js"
-        ],
-        "styles": [
-            "styles/terma/terma-hephaestus.css"
-        ],
-        "position": "right-panel"
-    }
-}
-EOF
+    # Create a backup of the registry file
+    cp "$REGISTRY_FILE" "${REGISTRY_FILE}.bak"
+    
+    # Add Terma to the components array
+    TMP_FILE=$(mktemp)
+    jq '.components = [{
+      "id": "terma",
+      "name": "Terma",
+      "description": "Advanced terminal environment",
+      "icon": "🖥️",
+      "defaultMode": "html",
+      "capabilities": ["terminal", "command_execution", "shell_access"]
+    }] + .components' "$REGISTRY_FILE" > "$TMP_FILE" && mv "$TMP_FILE" "$REGISTRY_FILE"
+    
+    echo "Terma added to the component registry"
+fi
+
+# Check if terminal settings are already in the settings template
+SETTINGS_FILE="${HEPHAESTUS_DIR}/ui/components/settings.html"
+if grep -q "Terminal Settings" "$SETTINGS_FILE"; then
+    echo "Terminal settings already exist in the settings UI"
+else
+    echo "Note: The Terminal Settings section needs to be manually added to the Hephaestus settings UI."
+    echo "Please refer to the documentation in /Users/cskoons/projects/github/Tekton/Terma/docs/PHASE_3.5_COMPLETED.md"
 fi
 
 # Add required API routes to the Hephaestus server

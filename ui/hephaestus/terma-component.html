@@ -2,7 +2,7 @@
 <div class="terma-container">
     <!-- Terminal Header -->
     <div class="terma-header">
-        <div class="terma-title">Terma Terminal</div>
+        <div class="terma-title" id="terma-title" data-greek-name="Terma - Terminal" data-functional-name="Terminal">Terma - Terminal</div>
         <div class="terma-controls">
             <select id="terma-session-selector" class="terma-select" title="Select Session">
                 <option value="new">New Session</option>
@@ -19,7 +19,7 @@
                     <path d="M6 3V1H1v5h2V4.5l2.5 2.5L7 5.5 4.5 3H6zm8-2v5h-2V4.5L9.5 7 8 5.5 10.5 3H9V1h5zM1 9h2v1.5L5.5 8 7 9.5 4.5 12H6v2H1V9zm8 5v-2h1.5L13 9.5 14.5 11 12 13.5V12h-2v5h5v-5h-2v1.5L10.5 11 12 9.5 14.5 12H16V7h-5v2h2v1.5L10.5 13 9 11.5 11.5 9H10v2H9v3z"></path>
                 </svg>
             </button>
-            <button id="terma-settings-btn" class="terma-btn" title="Terminal Settings">
+            <button id="terma-settings-btn" class="terma-btn" title="Terminal Settings (Open in Settings Panel)">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"></path>
                 </svg>
@@ -56,73 +56,21 @@
         </div>
     </div>
     
-    <!-- Terminal Settings Modal -->
-    <div id="terma-settings-modal" class="terma-modal">
+    <!-- Terminal Settings Modal - DEPRECATED (moved to Hephaestus settings panel) -->
+    <div id="terma-settings-modal" class="terma-modal" style="display:none;">
+        <!-- Settings modal has been moved to Hephaestus settings panel -->
         <div class="terma-modal-content">
             <div class="terma-modal-header">
                 <h2>Terminal Settings</h2>
                 <button id="terma-settings-close" class="terma-modal-close">&times;</button>
             </div>
             <div class="terma-modal-body">
-                <div class="terma-settings-group">
-                    <label for="terma-font-size">Font Size:</label>
-                    <input type="range" id="terma-font-size" min="8" max="24" value="14">
-                    <span id="terma-font-size-value">14px</span>
-                </div>
-                <div class="terma-settings-group">
-                    <label for="terma-font-family">Font Family:</label>
-                    <select id="terma-font-family">
-                        <option value="'Courier New', monospace">Courier New</option>
-                        <option value="'Source Code Pro', monospace">Source Code Pro</option>
-                        <option value="'Fira Code', monospace">Fira Code</option>
-                        <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
-                    </select>
-                </div>
-                <div class="terma-settings-group">
-                    <label for="terma-theme">Theme:</label>
-                    <select id="terma-theme">
-                        <option value="default">Default</option>
-                        <option value="light">Light</option>
-                        <option value="dark">Dark</option>
-                        <option value="monokai">Monokai</option>
-                        <option value="solarized">Solarized</option>
-                    </select>
-                </div>
-                <div class="terma-settings-group">
-                    <label for="terma-cursor-style">Cursor Style:</label>
-                    <select id="terma-cursor-style">
-                        <option value="block">Block</option>
-                        <option value="bar">Bar</option>
-                        <option value="underline">Underline</option>
-                    </select>
-                </div>
-                <div class="terma-settings-group">
-                    <label>
-                        <input type="checkbox" id="terma-cursor-blink" checked>
-                        Cursor Blink
-                    </label>
-                </div>
-                <div class="terma-settings-group">
-                    <label>
-                        <input type="checkbox" id="terma-scroll-back" checked>
-                        Enable Scrollback
-                    </label>
-                </div>
-                <div class="terma-settings-group">
-                    <label for="terma-scrollback-lines">Scrollback Lines:</label>
-                    <input type="number" id="terma-scrollback-lines" min="100" max="10000" value="1000">
-                </div>
-                <div class="terma-settings-group">
-                    <label>
-                        <input type="checkbox" id="terma-use-advanced-terminal" checked>
-                        Use Advanced Terminal (Terma)
-                    </label>
-                    <p class="terma-settings-help">Uncheck to use the simple terminal</p>
-                </div>
+                <p>Terminal settings have been moved to the Hephaestus Settings panel.</p>
+                <p>Click the Settings button in the main Hephaestus UI to access all terminal settings.</p>
             </div>
             <div class="terma-modal-footer">
-                <button id="terma-settings-save" class="terma-btn terma-btn-primary">Save Settings</button>
-                <button id="terma-settings-reset" class="terma-btn">Reset to Defaults</button>
+                <button id="terma-go-to-settings" class="terma-btn terma-btn-primary">Go to Settings</button>
+                <button id="terma-settings-close-btn" class="terma-btn">Close</button>
             </div>
         </div>
     </div>
@@ -193,21 +141,57 @@ function loadXtermDependencies() {
     return Promise.all(dependencyUrls.map(loadDependency));
 }
 
-// Load Terma terminal script
+// Directly include the terma-terminal.js script in the page
+document.write('<script src="../../../Terma/ui/js/terma-terminal.js"><\/script>');
+
+// Backup load function if direct include fails
 function loadTermaScript() {
     return new Promise((resolve, reject) => {
-        const scriptPath = '/terma/ui/js/terma-terminal.js';
+        // Try multiple possible paths for the script
+        const scriptPaths = [
+            '/terma/ui/js/terma-terminal.js',  // Original path
+            '../../../Terma/ui/js/terma-terminal.js',  // Relative path
+            '/scripts/terma/terma-terminal.js',  // Path if we add a symlink
+            '/Terma/ui/js/terma-terminal.js'   // Absolute path
+        ];
         
-        if (document.querySelector(`script[src="${scriptPath}"]`)) {
-            resolve();
-            return;
+        // Check if the script is already loaded
+        for (const path of scriptPaths) {
+            if (document.querySelector(`script[src="${path}"]`)) {
+                console.log(`Terma script already loaded from ${path}`);
+                resolve();
+                return;
+            }
         }
         
-        const script = document.createElement('script');
-        script.src = scriptPath;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`Failed to load ${scriptPath}`));
-        document.head.appendChild(script);
+        // Try loading the script from each path
+        const tryLoadScript = (index) => {
+            if (index >= scriptPaths.length) {
+                reject(new Error('Failed to load terma-terminal.js from all possible paths'));
+                return;
+            }
+            
+            const path = scriptPaths[index];
+            console.log(`Trying to load Terma script from ${path}`);
+            
+            const script = document.createElement('script');
+            script.src = path;
+            
+            script.onload = () => {
+                console.log(`Successfully loaded Terma script from ${path}`);
+                resolve();
+            };
+            
+            script.onerror = () => {
+                console.warn(`Failed to load Terma script from ${path}, trying next path...`);
+                tryLoadScript(index + 1);
+            };
+            
+            document.head.appendChild(script);
+        };
+        
+        // Start trying the paths
+        tryLoadScript(0);
     });
 }
 
@@ -219,7 +203,25 @@ async function initTermaTerminal() {
         
         // Now TermaTerminal class should be available from the loaded script
         if (typeof TermaTerminal === 'undefined') {
-            console.error('TermaTerminal class not found');
+            console.error('TermaTerminal class not found - cannot initialize terminal');
+            alert('Error: TermaTerminal class not found. Check console for details.');
+            
+            // Create a simple message to display in the terminal container
+            const container = document.getElementById('terma-terminal');
+            if (container) {
+                container.innerHTML = `
+                    <div style="padding: 20px; color: red; background: #222; height: 100%;">
+                        <h3>Error: Terminal Component Failed to Load</h3>
+                        <p>The Terma terminal component could not be initialized because the TermaTerminal class was not found.</p>
+                        <p>This may be due to a script loading error. Check the browser console for more details.</p>
+                        <p>Path checked: /terma/ui/js/terma-terminal.js</p>
+                        <hr>
+                        <p>Try running the Terma installation script again:</p>
+                        <pre>cd /Users/cskoons/projects/github/Tekton/Terma && ./install_in_hephaestus.sh</pre>
+                    </div>
+                `;
+            }
+            
             return false;
         }
         
