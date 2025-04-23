@@ -15,7 +15,18 @@ def setup_logging(level=logging.INFO, log_file=None):
         The configured logger
     """
     logger = logging.getLogger("terma")
+    
+    # Check if logger already has handlers to prevent duplicate logs
+    if logger.hasHandlers():
+        # If the logger already has handlers, just set the level and return it
+        logger.setLevel(level)
+        return logger
+    
+    # Otherwise, set up the logger
     logger.setLevel(level)
+    
+    # Prevent propagation to avoid duplicate logs in parent loggers
+    logger.propagate = False
     
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

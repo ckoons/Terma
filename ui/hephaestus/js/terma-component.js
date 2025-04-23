@@ -638,13 +638,13 @@ class TermaComponent {
 document.addEventListener('DOMContentLoaded', () => {
     // Create component instance
     const termaComponent = new TermaComponent({
-        debug: true
+        debug: false
     });
     
     // Initialize component
     termaComponent.init().then(success => {
         if (success) {
-            // Expose component to global scope for debugging
+            // Expose component to global scope for production use
             window.termaComponent = termaComponent;
         }
     });

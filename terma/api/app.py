@@ -298,6 +298,99 @@ async def websocket_endpoint(
     """WebSocket endpoint for terminal communication"""
     await websocket_server.handle_connection(websocket, f"/ws/{session_id}")
 
+# LLM Model API Endpoints
+class LLMProvidersResponse(BaseModel):
+    """Model for LLM providers response"""
+    providers: Dict[str, Any]
+    current_provider: str
+    current_model: str
+
+class LLMModelsResponse(BaseModel):
+    """Model for LLM models response"""
+    models: List[Dict[str, str]]
+    current_model: str
+
+class LLMSetRequest(BaseModel):
+    """Model for setting LLM provider and model"""
+    provider: str
+    model: str
+
+@app.get("/api/llm/providers", response_model=LLMProvidersResponse)
+async def get_llm_providers():
+    """Get available LLM providers and models"""
+    from ..core.llm_adapter import LLMAdapter
+    import aiohttp
+
+    # Create LLM adapter
+    llm_adapter = LLMAdapter()
+    
+    try:
+        # Check if LLM Adapter service is available
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{llm_adapter.adapter_url}/health", timeout=2.0) as response:
+                if response.status == 200:
+                    # Get providers from LLM Adapter
+                    providers = await llm_adapter.get_available_providers()
+                    current_provider, current_model = llm_adapter.get_current_provider_and_model()
+                    
+                    return {
+                        "providers": providers,
+                        "current_provider": current_provider,
+                        "current_model": current_model
+                    }
+    except Exception as e:
+        logger.warning(f"Error connecting to LLM Adapter service: {e}")
+    
+    # Fallback to default values if LLM Adapter is not available
+    providers = await llm_adapter.get_available_providers() # This will fallback to config
+    current_provider, current_model = llm_adapter.get_current_provider_and_model()
+    
+    return {
+        "providers": providers,
+        "current_provider": current_provider,
+        "current_model": current_model
+    }
+
+@app.get("/api/llm/models/{provider_id}", response_model=LLMModelsResponse)
+async def get_llm_models(provider_id: str):
+    """Get models for a specific LLM provider"""
+    from ..core.llm_adapter import LLMAdapter
+    from ..utils.config import LLM_PROVIDERS
+    
+    # Check if the provider exists
+    if provider_id not in LLM_PROVIDERS:
+        raise HTTPException(status_code=404, detail=f"Provider {provider_id} not found")
+    
+    llm_adapter = LLMAdapter()
+    current_provider, current_model = llm_adapter.get_current_provider_and_model()
+    models = LLM_PROVIDERS[provider_id]["models"]
+    
+    return {
+        "models": models,
+        "current_model": current_model if current_provider == provider_id else ""
+    }
+
+@app.post("/api/llm/set", response_model=StatusResponse)
+async def set_llm_provider_model(request: LLMSetRequest):
+    """Set the LLM provider and model"""
+    from ..core.llm_adapter import LLMAdapter
+    from ..utils.config import LLM_PROVIDERS
+    
+    # Check if the provider exists
+    if request.provider not in LLM_PROVIDERS:
+        raise HTTPException(status_code=404, detail=f"Provider {request.provider} not found")
+    
+    # Check if the model exists for this provider
+    provider_models = [m["id"] for m in LLM_PROVIDERS[request.provider]["models"]]
+    if request.model not in provider_models:
+        raise HTTPException(status_code=404, detail=f"Model {request.model} not found for provider {request.provider}")
+    
+    # Set the provider and model
+    llm_adapter = LLMAdapter()
+    llm_adapter.set_provider_and_model(request.provider, request.model)
+    
+    return {"status": "success"}
+
 # Terminal launcher endpoint
 @app.get("/terminal/launch")
 async def launch_terminal(
@@ -323,9 +416,27 @@ async def launch_terminal(
         <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.7.0/lib/xterm-addon-fit.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.8.0/lib/xterm-addon-web-links.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/xterm-addon-search@0.12.0/lib/xterm-addon-search.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/highlight.min.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/github-dark.min.css">
         <script>
             // Session ID from server
             const SESSION_ID = "{session_id}";
+            
+            // Configure marked options
+            document.addEventListener('DOMContentLoaded', function() {{
+                if (typeof marked !== 'undefined') {{
+                    marked.setOptions({{
+                        highlight: function(code, lang) {{
+                            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                            return hljs.highlight(code, {{ language }}).value;
+                        }},
+                        langPrefix: 'hljs language-',
+                        gfm: true,
+                        breaks: true
+                    }});
+                }}
+            }});
         </script>
         <script src="/ui/js/terma-terminal.js"></script>
     </head>
@@ -334,6 +445,12 @@ async def launch_terminal(
             <div class="terma-header">
                 <div class="terma-title">Terma Terminal - Session {session_id}</div>
                 <div class="terma-controls">
+                    <select id="terma-llm-provider" class="terma-select" title="LLM Provider">
+                        <!-- To be populated by JS -->
+                    </select>
+                    <select id="terma-llm-model" class="terma-select" title="LLM Model">
+                        <!-- To be populated by JS -->
+                    </select>
                     <button id="terma-settings-btn" class="terma-btn" title="Terminal Settings">⚙</button>
                 </div>
             </div>
@@ -366,15 +483,51 @@ async def launch_terminal(
     return HTMLResponse(content=html_content)
 
 # Server startup function
-async def start_server(host: str = "0.0.0.0", port: int = 8765):
-    """Start the FastAPI server and WebSocket server"""
-    import uvicorn
+async def start_server(host: str = "0.0.0.0", port: int = 8765, ws_port: int = None):
+    """Start the FastAPI server and WebSocket server
     
-    # Start the websocket server in the background
-    websocket_server = get_websocket_server()
-    asyncio.create_task(websocket_server.start_server(host, port + 1))
+    Args:
+        host: Host to bind to
+        port: Port to bind the API server to
+        ws_port: Port to bind the WebSocket server to (defaults to None, which disables the WebSocket server)
+    """
+    import uvicorn
+    import logging
+    logger = logging.getLogger("terma")
+    
+    # Always check for WebSocket port in environment variables first
+    if ws_port is None:
+        # Default to environment variable
+        import os
+        env_ws_port = os.environ.get('TERMA_WS_PORT')
+        if env_ws_port:
+            try:
+                ws_port = int(env_ws_port)
+                logger.info(f"Using WebSocket port {ws_port} from TERMA_WS_PORT environment variable")
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid TERMA_WS_PORT value: {env_ws_port}, using default")
+    
+    # Only start the WebSocket server if a port is available
+    if ws_port is not None:
+        logger.debug(f"Starting WebSocket server on {host}:{ws_port}")
+        websocket_server = get_websocket_server()
+        
+        # Check if port is already in use
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = s.connect_ex((host, ws_port))
+        s.close()
+        
+        if result == 0:
+            logger.warning(f"WebSocket port {ws_port} is already in use - WebSocket server may not start correctly")
+        
+        # Start the WebSocket server in a background task
+        asyncio.create_task(websocket_server.start_server(host, ws_port))
+    else:
+        logger.debug("WebSocket server initialization skipped (ws_port not specified)")
     
     # Start the FastAPI server
+    logger.debug(f"Starting FastAPI server on {host}:{port}")
     config = uvicorn.Config(app, host=host, port=port)
     server = uvicorn.Server(config)
     await server.serve()

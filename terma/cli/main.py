@@ -10,13 +10,16 @@ import time
 import uvicorn
 from typing import Optional
 
+import logging
+
 from ..utils.logging import setup_logging
 from ..utils.config import Config
 from ..core.session_manager import SessionManager
 from ..api.app import app, start_server
 from ..api.ui_server import start_ui_server
 
-logger = setup_logging()
+# Use DEBUG level for logging during troubleshooting
+logger = setup_logging(level=logging.DEBUG)
 config = Config()
 
 def main():
@@ -78,23 +81,57 @@ def main():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             
+            # Add debug logging for port availability before starting servers
+            def check_port(host, port, name):
+                import socket
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                result = s.connect_ex((host, port))
+                if result == 0:
+                    logger.debug(f"Port {port} for {name} is ALREADY IN USE")
+                    # Check what process is using the port
+                    import subprocess
+                    try:
+                        process_info = subprocess.run(['lsof', '-i', f':{port}'], 
+                                                    capture_output=True, text=True)
+                        logger.debug(f"lsof output for port {port}:\n{process_info.stdout}")
+                    except Exception as e:
+                        logger.debug(f"Failed to run lsof: {e}")
+                else:
+                    logger.debug(f"Port {port} for {name} is AVAILABLE")
+                s.close()
+                return result == 0
+            
+            # Check ports before starting servers
+            api_port_used = check_port(args.host, args.port, "API Server")
+            if api_port_used:
+                logger.warning(f"API port {args.port} is already in use!")
+            
+            if not args.no_ui:
+                ui_port_used = check_port(args.host, args.ui_port, "UI Server")
+                if ui_port_used:
+                    logger.warning(f"UI port {args.ui_port} is already in use!")
+            
             # Start UI server in a separate process if requested
             ui_process = None
             if not args.no_ui:
                 try:
                     import multiprocessing
-                    print(f"Starting UI server on {args.host}:{args.ui_port}")
+                    logger.info(f"Starting UI server on {args.host}:{args.ui_port}")
                     ui_process = multiprocessing.Process(
                         target=start_ui_server,
                         args=(args.host, args.ui_port)
                     )
                     ui_process.start()
+                    logger.debug(f"UI process started with PID {ui_process.pid}")
                 except Exception as e:
                     logger.error(f"Failed to start UI server: {e}")
             
-            # Start the API server
-            print(f"Starting API server on {args.host}:{args.port}")
-            loop.run_until_complete(start_server(args.host, args.port))
+            # Start the API server with WebSocket server on a different port (+2 by default)
+            # This allows both the API and WebSocket servers to run in the main process without port conflict
+            ws_port = args.port + 2  # Use API port + 2 to avoid conflict with UI server
+            logger.info(f"Starting API server on {args.host}:{args.port}")
+            logger.info(f"Starting WebSocket server on {args.host}:{ws_port}")
+            loop.run_until_complete(start_server(args.host, args.port, ws_port=ws_port))
             
         except KeyboardInterrupt:
             print("Server stopped")

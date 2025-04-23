@@ -131,9 +131,10 @@ class TerminalWebSocketHandler:
                 self.session_manager.resize_session(self.session_id, rows, cols)
                 
             elif message_type == "llm_assist":
-                # Request LLM assistance (to be implemented in Phase 2)
+                # Request LLM assistance
                 command = data.get("command", "")
-                await self._handle_llm_request(websocket, command)
+                is_output_analysis = data.get("is_output_analysis", False)
+                await self._handle_llm_request(websocket, command, is_output_analysis)
                 
             else:
                 logger.warning(f"Unknown message type: {message_type}")
@@ -143,23 +144,89 @@ class TerminalWebSocketHandler:
         except Exception as e:
             logger.error(f"Error handling websocket message: {e}")
     
-    async def _handle_llm_request(self, websocket: WebSocketServerProtocol, command: str):
+    async def _handle_llm_request(self, websocket: WebSocketServerProtocol, command: str, is_output_analysis: bool = False):
         """Handle a request for LLM assistance
         
         Args:
             websocket: The WebSocket connection
             command: The command to analyze
+            is_output_analysis: Whether this is an output analysis request
         """
-        # This is a placeholder for Phase 2 LLM integration
-        response = {
-            "type": "llm_response",
-            "content": f"LLM assistance for '{command}' will be implemented in Phase 2."
-        }
-        
         try:
+            # Get the session from the handler
+            session_id = self.session_id
+            session = self.session_manager.get_session(session_id)
+            
+            if not session:
+                logger.error(f"Session {session_id} not found for LLM request")
+                response = {
+                    "type": "llm_response",
+                    "content": f"Error: Terminal session not found. Please refresh the page.",
+                    "error": True
+                }
+                await websocket.send(json.dumps(response))
+                return
+            
+            # Send a loading message
+            loading_response = {
+                "type": "llm_response",
+                "content": "Analyzing command and generating response...",
+                "loading": True
+            }
+            await websocket.send(json.dumps(loading_response))
+            
+            # Use the LLM adapter to analyze the command
+            from ..core.llm_adapter import LLMAdapter
+            llm_adapter = LLMAdapter()
+            
+            # Process based on whether this is command help or output analysis
+            if is_output_analysis:
+                # Get command and output from the provided text
+                if '\nOutput:\n' in command:
+                    # Command includes output
+                    parts = command.split('\nOutput:\n', 1)
+                    cmd = parts[0].strip()
+                    output = parts[1] if len(parts) > 1 else ""
+                    
+                    # Analyze the command output
+                    logger.info(f"Analyzing output for command: {cmd}")
+                    llm_response = await llm_adapter.analyze_output(session_id, cmd, output)
+                else:
+                    # Just a command without output
+                    logger.info(f"Analyzing command output: {command}")
+                    llm_response = await llm_adapter.analyze_output(session_id, command, "")
+            else:
+                # Command explanation request
+                clean_command = command.strip()
+                if clean_command.startswith("?"):
+                    clean_command = clean_command[1:].strip()
+                
+                if not clean_command:
+                    llm_response = "Please provide a command to explain."
+                else:
+                    logger.info(f"Analyzing command: {clean_command}")
+                    llm_response = await llm_adapter.analyze_command(session_id, clean_command)
+            
+            # Send the response
+            response = {
+                "type": "llm_response",
+                "content": llm_response,
+                "loading": False
+            }
+            
             await websocket.send(json.dumps(response))
         except Exception as e:
-            logger.error(f"Error sending LLM response: {e}")
+            logger.error(f"Error handling LLM request: {e}")
+            response = {
+                "type": "llm_response",
+                "content": f"Error processing LLM request: {str(e)}",
+                "loading": False,
+                "error": True
+            }
+            try:
+                await websocket.send(json.dumps(response))
+            except Exception as send_error:
+                logger.error(f"Error sending LLM error response: {send_error}")
 
 class TerminalWebSocketServer:
     """WebSocket server for terminal I/O"""
@@ -245,23 +312,64 @@ class TerminalWebSocketServer:
             self.handlers[session_id] = TerminalWebSocketHandler(session_id, self.session_manager)
         return self.handlers[session_id]
     
-    async def start_server(self, host: str = '0.0.0.0', port: int = 8765):
+    async def start_server(self, host: str = None, port: int = None):
         """Start the WebSocket server
         
         Args:
-            host: Host to bind to
-            port: Port to bind to
+            host: Host to bind to (defaults to TERMA_WS_HOST env var or "0.0.0.0")
+            port: Port to bind to (defaults to TERMA_WS_PORT env var or 8767)
         """
-        self.server = await websockets.serve(
-            self.handle_connection,
-            host,
-            port
-        )
+        import os
         
-        logger.info(f"Terminal WebSocket server started on {host}:{port}")
+        # Read from environment variables as the source of truth
+        if host is None:
+            host = os.environ.get("TERMA_WS_HOST", "0.0.0.0")
         
-        # Keep the server running
-        await self.server.wait_closed()
+        if port is None:
+            # Use TERMA_WS_PORT as the default
+            port = int(os.environ.get("TERMA_WS_PORT", "8767"))
+            logger.info(f"Using port {port} from TERMA_WS_PORT environment variable")
+        # Debug port availability
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = s.connect_ex((host, port))
+        if result == 0:
+            logger.warning(f"WebSocket port {port} is already in use!")
+            # Check what process is using the port
+            import subprocess
+            try:
+                process_info = subprocess.run(['lsof', '-i', f':{port}'], 
+                                           capture_output=True, text=True)
+                logger.debug(f"WebSocket port {port} lsof output:\n{process_info.stdout}")
+            except Exception as e:
+                logger.debug(f"Failed to run lsof for WebSocket port: {e}")
+        else:
+            logger.debug(f"WebSocket port {port} is available")
+        s.close()
+        
+        try:
+            import os
+            logger.debug(f"WebSocket server process PID: {os.getpid()}")
+            
+            # Use more explicit server settings
+            # Only use parameters that are supported by the installed websockets version
+            self.server = await websockets.serve(
+                self.handle_connection,
+                host,
+                port,
+                ping_interval=30,      # Send ping every 30 seconds
+                ping_timeout=10,       # Wait 10 seconds for pong
+                max_size=1024*1024,    # 1MB max message size
+            )
+            
+            logger.info(f"Terminal WebSocket server started on {host}:{port}")
+            
+            # Keep the server running
+            await self.server.wait_closed()
+        except Exception as e:
+            logger.error(f"Failed to start WebSocket server on port {port}: {e}")
+            import traceback
+            logger.debug(f"WebSocket server error details: {traceback.format_exc()}")
     
     def stop_server(self):
         """Stop the WebSocket server"""

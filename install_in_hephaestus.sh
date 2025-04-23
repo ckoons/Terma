@@ -41,13 +41,27 @@ echo "Creating symlinks for Terma component files..."
 # Create symlink for the component HTML
 ln -sf "${SCRIPT_DIR}/ui/hephaestus/terma-component.html" "${HEPHAESTUS_DIR}/ui/components/terma/terma-component.html"
 
-# Create symlink for the component JavaScript
+# Create symlinks for the component JavaScript files
 mkdir -p "${HEPHAESTUS_DIR}/ui/scripts/terma"
 ln -sf "${SCRIPT_DIR}/ui/hephaestus/js/terma-component.js" "${HEPHAESTUS_DIR}/ui/scripts/terma/terma-component.js"
+ln -sf "${SCRIPT_DIR}/ui/js/terma-terminal.js" "${HEPHAESTUS_DIR}/ui/scripts/terma/terma-terminal.js"
 
-# Create symlink for the component CSS
+# Create symlinks for the component CSS files
 mkdir -p "${HEPHAESTUS_DIR}/ui/styles/terma"
 ln -sf "${SCRIPT_DIR}/ui/hephaestus/css/terma-hephaestus.css" "${HEPHAESTUS_DIR}/ui/styles/terma/terma-hephaestus.css"
+ln -sf "${SCRIPT_DIR}/ui/css/terma-terminal.css" "${HEPHAESTUS_DIR}/ui/styles/terma/terma-terminal.css"
+
+# Create a ui/css and ui/js directory in case it's needed directly
+mkdir -p "${HEPHAESTUS_DIR}/ui/css"
+mkdir -p "${HEPHAESTUS_DIR}/ui/js"
+
+# Create symlinks in ui/css and ui/js for direct access
+ln -sf "${SCRIPT_DIR}/ui/css/terma-terminal.css" "${HEPHAESTUS_DIR}/ui/css/terma-terminal.css"
+ln -sf "${SCRIPT_DIR}/ui/js/terma-terminal.js" "${HEPHAESTUS_DIR}/ui/js/terma-terminal.js"
+
+# Note about fixed ports - we're using explicit ports in the code now
+echo "Note: Using fixed ports: 8765 for API server and 8767 for WebSocket server"
+echo "These ports match the TERMA_API_PORT and TERMA_WS_PORT values in tekton-launch"
 
 # Add the component to the Hephaestus component registry
 REGISTRY_FILE="${HEPHAESTUS_DIR}/ui/server/component_registry.json"
