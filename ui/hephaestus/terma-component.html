@@ -1,758 +1,152 @@
-<!-- Terma Terminal Component for Hephaestus UI RIGHT PANEL -->
-<div class="terma-container">
-    <!-- Terminal Header -->
-    <div class="terma-header">
-        <div class="terma-title" id="terma-title" data-greek-name="Terma - Terminal" data-functional-name="Terminal">Terma - Terminal</div>
-        <div class="terma-controls">
-            <select id="terma-session-selector" class="terma-select" title="Select Session">
-                <option value="new">New Session</option>
-                <!-- Sessions will be populated dynamically -->
-            </select>
-            <select id="terma-terminal-type" class="terma-select" title="Terminal Type">
-                <option value="default">Default Shell</option>
-                <option value="bash">Bash</option>
-                <option value="python">Python</option>
-                <option value="node">Node.js</option>
-            </select>
-            <select id="terma-llm-provider-model" class="terma-select" title="AI Model">
-                <!-- Provider:Model options will be populated dynamically -->
-                <option value="loading">Loading...</option>
-            </select>
-            <button id="terma-detach-btn" class="terma-btn" title="Detach Terminal">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M6 3V1H1v5h2V4.5l2.5 2.5L7 5.5 4.5 3H6zm8-2v5h-2V4.5L9.5 7 8 5.5 10.5 3H9V1h5zM1 9h2v1.5L5.5 8 7 9.5 4.5 12H6v2H1V9zm8 5v-2h1.5L13 9.5 14.5 11 12 13.5V12h-2v5h5v-5h-2v1.5L10.5 11 12 9.5 14.5 12H16V7h-5v2h2v1.5L10.5 13 9 11.5 11.5 9H10v2H9v3z"></path>
-                </svg>
-            </button>
-            <button id="terma-settings-btn" class="terma-btn" title="Terminal Settings (Open in Settings Panel)">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"></path>
-                </svg>
-            </button>
-            <button id="terma-toggle-mode-btn" class="terma-btn" title="Toggle Terminal Mode">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                    <path d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"/>
-                </svg>
-            </button>
-        </div>
+<!-- Terma Terminal Component with Shadow DOM Isolation -->
+<div class="terma">
+  <!-- Terminal Header -->
+  <div class="terma__header">
+    <div class="terma__title" id="terma-title" data-greek-name="Terma - Terminal" data-functional-name="Terminal">Terma - Terminal</div>
+    <div class="terma__controls">
+      <select id="terma-session-selector" class="terma__select" title="Select Session">
+        <option value="new">New Session</option>
+        <!-- Sessions will be populated dynamically -->
+      </select>
+      <select id="terma-terminal-type" class="terma__select" title="Terminal Type">
+        <option value="default">Default Shell</option>
+        <option value="bash">Bash</option>
+        <option value="python">Python</option>
+        <option value="node">Node.js</option>
+      </select>
+      <select id="terma-llm-provider-model" class="terma__select" title="AI Model">
+        <!-- Provider:Model options will be populated dynamically -->
+        <option value="loading">Loading AI models...</option>
+      </select>
+      <button id="terma-detach-btn" class="terma__btn" title="Detach Terminal">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M6 3V1H1v5h2V4.5l2.5 2.5L7 5.5 4.5 3H6zm8-2v5h-2V4.5L9.5 7 8 5.5 10.5 3H9V1h5zM1 9h2v1.5L5.5 8 7 9.5 4.5 12H6v2H1V9zm8 5v-2h1.5L13 9.5 14.5 11 12 13.5V12h-2v5h5v-5h-2v1.5L10.5 11 12 9.5 14.5 12H16V7h-5v2h2v1.5L10.5 13 9 11.5 11.5 9H10v2H9v3z"></path>
+        </svg>
+      </button>
+      <button id="terma-settings-btn" class="terma__btn" title="Terminal Settings">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"></path>
+        </svg>
+      </button>
+      <button id="terma-toggle-mode-btn" class="terma__btn" title="Toggle Terminal Mode">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+          <path d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"/>
+        </svg>
+      </button>
     </div>
-    
-    <!-- Terminal Content -->
-    <div class="terma-content">
-        <div id="terma-terminal" class="terma-terminal"></div>
-        <div id="simple-terminal" class="simple-terminal" style="display:none;"></div>
+  </div>
+  
+  <!-- Terminal Content Area -->
+  <div class="terma__content">
+    <div id="terma-terminal" class="terma__terminal"></div>
+    <div id="simple-terminal" class="terma__simple-terminal"></div>
+  </div>
+  
+  <!-- LLM Assistance Panel -->
+  <div class="terma__llm-panel">
+    <div class="terma__llm-header">
+      <div class="terma__llm-title">AI Assistant</div>
+      <button id="terma-llm-toggle" class="terma__btn" title="Toggle AI Assistant">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"></path>
+        </svg>
+      </button>
     </div>
-    
-    <!-- LLM Assistance Panel (collapsible) -->
-    <div class="terma-llm-assistance">
-        <div class="terma-llm-header">
-            <div class="terma-llm-title">AI Assistant</div>
-            <button id="terma-llm-toggle" class="terma-btn" title="Toggle AI Assistant">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"></path>
-                </svg>
-            </button>
-        </div>
-        <div id="terma-llm-content" class="terma-llm-content">
-            <div id="terma-llm-output" class="terma-llm-output">
-                <p>Ask for help by typing <code>?command</code> or run command followed by <code>?</code> to analyze output.</p>
-            </div>
-        </div>
+    <div id="terma-llm-content" class="terma__llm-content">
+      <div id="terma-llm-output" class="terma__llm-output">
+        <p>Ask for help by typing <code>?command</code> or run command followed by <code>?</code> to analyze output.</p>
+      </div>
     </div>
-    
-    <!-- Include required JavaScript libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/highlight.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/github-dark.min.css">
-    
-    <!-- Terminal Settings Modal - DEPRECATED (moved to Hephaestus settings panel) -->
-    <div id="terma-settings-modal" class="terma-modal" style="display:none;">
-        <!-- Settings modal has been moved to Hephaestus settings panel -->
-        <div class="terma-modal-content">
-            <div class="terma-modal-header">
-                <h2>Terminal Settings</h2>
-                <button id="terma-settings-close" class="terma-modal-close">&times;</button>
-            </div>
-            <div class="terma-modal-body">
-                <p>Terminal settings have been moved to the Hephaestus Settings panel.</p>
-                <p>Click the Settings button in the main Hephaestus UI to access all terminal settings.</p>
-            </div>
-            <div class="terma-modal-footer">
-                <button id="terma-go-to-settings" class="terma-btn terma-btn-primary">Go to Settings</button>
-                <button id="terma-settings-close-btn" class="terma-btn">Close</button>
-            </div>
+  </div>
+  
+  <!-- Terminal Settings Dialog -->
+  <div id="terma-settings-dialog" class="terma__dialog">
+    <div class="terma__dialog-content">
+      <div class="terma__dialog-header">
+        <h3 class="terma__dialog-title">Terminal Settings</h3>
+        <button class="terma__dialog-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="terma__dialog-body">
+        <div class="terma__settings-group">
+          <label for="terma-font-size" class="terma__settings-label">Font Size</label>
+          <div class="terma__settings-control">
+            <input type="range" id="terma-font-size" class="terma__range" min="10" max="24" step="1" value="14">
+            <span id="terma-font-size-value" class="terma__settings-value">14px</span>
+          </div>
         </div>
+        
+        <div class="terma__settings-group">
+          <label for="terma-font-family" class="terma__settings-label">Font Family</label>
+          <select id="terma-font-family" class="terma__select terma__select--full">
+            <option value="'Courier New', monospace">Courier New</option>
+            <option value="'Source Code Pro', monospace">Source Code Pro</option>
+            <option value="'Ubuntu Mono', monospace">Ubuntu Mono</option>
+            <option value="'Fira Code', monospace">Fira Code</option>
+            <option value="'Consolas', monospace">Consolas</option>
+          </select>
+        </div>
+        
+        <div class="terma__settings-group">
+          <label for="terma-theme" class="terma__settings-label">Terminal Theme</label>
+          <select id="terma-theme" class="terma__select terma__select--full">
+            <option value="default">Default Dark</option>
+            <option value="light">Light</option>
+            <option value="solarized">Solarized Dark</option>
+            <option value="monokai">Monokai</option>
+          </select>
+        </div>
+        
+        <div class="terma__settings-group">
+          <label for="terma-cursor-style" class="terma__settings-label">Cursor Style</label>
+          <select id="terma-cursor-style" class="terma__select terma__select--full">
+            <option value="block">Block</option>
+            <option value="underline">Underline</option>
+            <option value="bar">Bar</option>
+          </select>
+        </div>
+        
+        <div class="terma__settings-group terma__settings-group--checkbox">
+          <input type="checkbox" id="terma-cursor-blink" class="terma__checkbox" checked>
+          <label for="terma-cursor-blink" class="terma__settings-label terma__settings-label--inline">Cursor Blink</label>
+        </div>
+        
+        <div class="terma__settings-group terma__settings-group--checkbox">
+          <input type="checkbox" id="terma-scrollback" class="terma__checkbox" checked>
+          <label for="terma-scrollback" class="terma__settings-label terma__settings-label--inline">Enable Scrollback</label>
+        </div>
+        
+        <div id="terma-scrollback-container" class="terma__settings-group terma__settings-group--indented">
+          <label for="terma-scrollback-lines" class="terma__settings-label">Scrollback Lines</label>
+          <input type="number" id="terma-scrollback-lines" class="terma__input" min="100" max="10000" step="100" value="1000">
+        </div>
+      </div>
+      <div class="terma__dialog-footer">
+        <button id="terma-settings-reset" class="terma__btn terma__btn--secondary">Reset to Defaults</button>
+        <button id="terma-settings-save" class="terma__btn terma__btn--primary">Save Settings</button>
+      </div>
     </div>
+  </div>
+  
+  <!-- Connection Status Bar -->
+  <div id="terma-status-bar" class="terma__status-bar">
+    <div id="terma-connection-status" class="terma__status-item terma__status-item--connecting">
+      <span class="terma__status-indicator"></span>
+      <span class="terma__status-text">Connecting...</span>
+    </div>
+    <div id="terma-session-info" class="terma__status-item">
+      <span class="terma__status-text">No active session</span>
+    </div>
+  </div>
+  
+  <!-- Terminal Loading Overlay -->
+  <div id="terma-loading" class="terma__loading">
+    <div class="terma__loading-spinner"></div>
+    <div class="terma__loading-text">Initializing terminal...</div>
+  </div>
 </div>
 
-<!-- Terma Component JavaScript -->
-<script>
-/**
- * Terma Component Integration for Hephaestus UI
- *
- * This script integrates the Terma Terminal into the Hephaestus UI,
- * providing both advanced terminal functionality and compatibility
- * with the existing terminal system.
- */
-
-// Terminal components
-let termaTerminal = null;
-let simpleTerminal = null;
-let currentTerminalMode = 'advanced'; // 'advanced' or 'simple'
-
-// Load CSS styles
-function loadStyles() {
-    const styles = document.createElement('link');
-    styles.rel = 'stylesheet';
-    styles.href = '/ui/css/terma-hephaestus.css';
-    document.head.appendChild(styles);
-}
-
-// Include xterm.js dependencies if not already loaded
-function loadXtermDependencies() {
-    const dependencyUrls = [
-        'https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.min.js',
-        'https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.css',
-        'https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.7.0/lib/xterm-addon-fit.min.js',
-        'https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.8.0/lib/xterm-addon-web-links.min.js',
-        'https://cdn.jsdelivr.net/npm/xterm-addon-search@0.12.0/lib/xterm-addon-search.min.js'
-    ];
-    
-    const loadDependency = (url) => {
-        return new Promise((resolve, reject) => {
-            if (url.endsWith('.js')) {
-                if (document.querySelector(`script[src="${url}"]`)) {
-                    resolve();
-                    return;
-                }
-                
-                const script = document.createElement('script');
-                script.src = url;
-                script.onload = () => resolve();
-                script.onerror = () => reject(new Error(`Failed to load ${url}`));
-                document.head.appendChild(script);
-            } else if (url.endsWith('.css')) {
-                if (document.querySelector(`link[href="${url}"]`)) {
-                    resolve();
-                    return;
-                }
-                
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = url;
-                link.onload = () => resolve();
-                link.onerror = () => reject(new Error(`Failed to load ${url}`));
-                document.head.appendChild(link);
-            }
-        });
-    };
-    
-    return Promise.all(dependencyUrls.map(loadDependency));
-}
-
-// Add direct link to terminal css
-const terminalCssOptions = [
-    '/styles/terma/terma-terminal.css',  // Symlinked path
-    '/ui/css/terma-terminal.css',        // Server-relative path
-    'css/terma-terminal.css',            // Short relative path
-    '/terma/ui/css/terma-terminal.css'   // Full root path
-];
-
-// Add cache busting timestamp
-const cssTimestamp = new Date().getTime();
-
-// Try multiple CSS paths
-const terminalCss = document.createElement('link');
-terminalCss.rel = 'stylesheet';
-terminalCss.href = terminalCssOptions[0] + '?t=' + cssTimestamp; // Use first option with cache busting
-document.head.appendChild(terminalCss);
-
-// Try backup CSS paths if the first one fails
-terminalCss.onerror = function() {
-    console.warn(`Failed to load CSS from ${terminalCssOptions[0]}, trying alternatives...`);
-    for (let i = 1; i < terminalCssOptions.length; i++) {
-        console.log(`Trying to load CSS from ${terminalCssOptions[i]}`);
-        const altCss = document.createElement('link');
-        altCss.rel = 'stylesheet';
-        // Add cache busting
-        altCss.href = terminalCssOptions[i] + '?t=' + cssTimestamp;
-        document.head.appendChild(altCss);
-    }
-};
-
-// Directly include the terma-terminal.js script in the page
-const scriptPaths = [
-    '/scripts/terma/terma-terminal.js',  // Symlinked path
-    '/ui/js/terma-terminal.js',          // Server-relative path
-    'js/terma-terminal.js',              // Short relative path
-    '/terma/ui/js/terma-terminal.js'     // Full root path
-];
-
-// Create script element
-const scriptElement = document.createElement('script');
-// Add cache busting to prevent browser caching
-const cacheBuster = '?t=' + new Date().getTime();
-scriptElement.src = scriptPaths[0] + cacheBuster; // Use first option with cache busting
-document.head.appendChild(scriptElement);
-
-// Backup load function if direct include fails
-function loadTermaScript() {
-    return new Promise((resolve, reject) => {
-        // Script should have been loaded directly at this point
-        // If it's already loaded, just resolve
-        if (typeof TermaTerminal !== 'undefined') {
-            console.log('TermaTerminal class already available');
-            resolve();
-            return;
-        }
-        
-        console.warn('Direct script loading failed, trying all possible paths as fallback');
-        
-        // Try multiple possible paths for the script
-        const scriptPaths = [
-            '/scripts/terma/terma-terminal.js',  // Symlinked path
-            '/ui/js/terma-terminal.js',          // Server-relative path
-            'js/terma-terminal.js',              // Short relative path
-            '/terma/ui/js/terma-terminal.js',    // Full root path
-            '../../../Terma/ui/js/terma-terminal.js'  // Deep relative path (least likely)
-        ];
-        
-        // Check if the script is already loaded
-        for (const path of scriptPaths) {
-            if (document.querySelector(`script[src="${path}"]`)) {
-                console.log(`Terma script already loaded from ${path}`);
-                resolve();
-                return;
-            }
-        }
-        
-        // Try loading the script from each path
-        const tryLoadScript = (index) => {
-            if (index >= scriptPaths.length) {
-                reject(new Error('Failed to load terma-terminal.js from all possible paths'));
-                return;
-            }
-            
-            const path = scriptPaths[index];
-            console.log(`Trying to load Terma script from ${path}`);
-            
-            const script = document.createElement('script');
-            // Add cache busting to prevent browser caching
-            script.src = path + '?t=' + new Date().getTime();
-            
-            script.onload = () => {
-                console.log(`Successfully loaded Terma script from ${path}`);
-                resolve();
-            };
-            
-            script.onerror = () => {
-                console.warn(`Failed to load Terma script from ${path}, trying next path...`);
-                tryLoadScript(index + 1);
-            };
-            
-            document.head.appendChild(script);
-        };
-        
-        // Start trying the paths
-        tryLoadScript(0);
-    });
-}
-
-// Initialize Terma terminal
-async function initTermaTerminal() {
-    try {
-        await loadXtermDependencies();
-        await loadTermaScript();
-        
-        // Now TermaTerminal class should be available from the loaded script
-        if (typeof TermaTerminal === 'undefined') {
-            console.error('TermaTerminal class not found - cannot initialize terminal');
-            alert('Error: TermaTerminal class not found. Check console for details.');
-            
-            // Create a simple message to display in the terminal container
-            const container = document.getElementById('terma-terminal');
-            if (container) {
-                container.innerHTML = `
-                    <div style="padding: 20px; color: red; background: #222; height: 100%;">
-                        <h3>Error: Terminal Component Failed to Load</h3>
-                        <p>The Terma terminal component could not be initialized because the TermaTerminal class was not found.</p>
-                        <p>This may be due to a script loading error. Check the browser console for more details.</p>
-                        <p>Path checked: /terma/ui/js/terma-terminal.js</p>
-                        <hr>
-                        <p>Try running the Terma installation script again:</p>
-                        <pre>cd /Users/cskoons/projects/github/Tekton/Terma && ./install_in_hephaestus.sh</pre>
-                    </div>
-                `;
-            }
-            
-            return false;
-        }
-        
-        // Get the hostname from the current location
-        const hostname = window.location.hostname || 'localhost';
-        
-        // Get the API server URL - will use port 8765 by default (TERMA_API_PORT)
-        const serverUrl = window.location.protocol + '//' + hostname + ':8765';
-        
-        // For WebSocket, calculate based on API port convention:
-        // TERMA_API_PORT is 8765, TERMA_WS_PORT is 8767 (API port + 2)
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-        const wsPort = 8767; // This should match TERMA_WS_PORT in the environment
-        const wsUrl = wsProtocol + hostname + ':' + wsPort + '/ws';
-        
-        // Log the URLs we're using
-        console.log(`Server URL: ${serverUrl} (fixed port 8765)`);
-        console.log(`WebSocket URL: ${wsUrl} (fixed port 8767)`);
-        
-        termaTerminal = new TermaTerminal({
-            containerId: 'terma-terminal',
-            serverUrl: serverUrl,
-            wsUrl: wsUrl
-        });
-        
-        // Initialize terminal
-        await termaTerminal.init();
-        return true;
-    } catch (error) {
-        console.error('Error initializing Terma terminal:', error);
-        return false;
-    }
-}
-
-// Initialize simple terminal
-function initSimpleTerminal() {
-    try {
-        // Get container
-        const container = document.getElementById('simple-terminal');
-        
-        // Create terminal instance using the existing TerminalManager class
-        simpleTerminal = new TerminalManager('simple-terminal');
-        simpleTerminal.init();
-        
-        return true;
-    } catch (error) {
-        console.error('Error initializing simple terminal:', error);
-        return false;
-    }
-}
-
-// Toggle between terminal modes
-function toggleTerminalMode() {
-    const termaTerminalEl = document.getElementById('terma-terminal');
-    const simpleTerminalEl = document.getElementById('simple-terminal');
-    
-    if (currentTerminalMode === 'advanced') {
-        // Switch to simple terminal
-        termaTerminalEl.style.display = 'none';
-        simpleTerminalEl.style.display = 'block';
-        currentTerminalMode = 'simple';
-        
-        // Initialize simple terminal if not already done
-        if (!simpleTerminal) {
-            initSimpleTerminal();
-        }
-    } else {
-        // Switch to advanced terminal
-        termaTerminalEl.style.display = 'block';
-        simpleTerminalEl.style.display = 'none';
-        currentTerminalMode = 'advanced';
-        
-        // Fit the terminal to its container
-        if (termaTerminal) {
-            termaTerminal.fitTerminal();
-        }
-    }
-    
-    // Save preference
-    localStorage.setItem('terma_terminal_mode', currentTerminalMode);
-}
-
-// Setup event handlers
-function setupEventHandlers() {
-    // Toggle mode button
-    const toggleBtn = document.getElementById('terma-toggle-mode-btn');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', toggleTerminalMode);
-    }
-    
-    // Settings checkbox for terminal mode
-    const useAdvancedCheckbox = document.getElementById('terma-use-advanced-terminal');
-    if (useAdvancedCheckbox) {
-        useAdvancedCheckbox.addEventListener('change', function() {
-            if (this.checked && currentTerminalMode !== 'advanced') {
-                toggleTerminalMode();
-            } else if (!this.checked && currentTerminalMode !== 'simple') {
-                toggleTerminalMode();
-            }
-        });
-    }
-}
-
-// Initialize component based on saved preference
-async function initializeBasedOnPreference() {
-    // Load saved preference or default to advanced
-    currentTerminalMode = localStorage.getItem('terma_terminal_mode') || 'advanced';
-    
-    const termaTerminalEl = document.getElementById('terma-terminal');
-    const simpleTerminalEl = document.getElementById('simple-terminal');
-    const useAdvancedCheckbox = document.getElementById('terma-use-advanced-terminal');
-    
-    if (currentTerminalMode === 'advanced') {
-        // Start with advanced terminal
-        termaTerminalEl.style.display = 'block';
-        simpleTerminalEl.style.display = 'none';
-        if (useAdvancedCheckbox) useAdvancedCheckbox.checked = true;
-        
-        // Initialize advanced terminal
-        await initTermaTerminal();
-    } else {
-        // Start with simple terminal
-        termaTerminalEl.style.display = 'none';
-        simpleTerminalEl.style.display = 'block';
-        if (useAdvancedCheckbox) useAdvancedCheckbox.checked = false;
-        
-        // Initialize simple terminal
-        initSimpleTerminal();
-    }
-}
-
-// Transfer history between terminals
-function transferHistory(from, to) {
-    if (from === 'simple' && to === 'advanced') {
-        // Transfer from simple to advanced
-        if (simpleTerminal && simpleTerminal.history && termaTerminal) {
-            // Simple terminal history is more complicated to transfer
-            // This is a placeholder for actual implementation
-            console.log('History transfer from simple to advanced is not yet implemented');
-        }
-    } else if (from === 'advanced' && to === 'simple') {
-        // Transfer from advanced to simple
-        if (termaTerminal && simpleTerminal) {
-            // Advanced terminal history is more complicated to transfer
-            // This is a placeholder for actual implementation
-            console.log('History transfer from advanced to simple is not yet implemented');
-        }
-    }
-}
-
-// Initialize component
-async function initTermaComponent() {
-    console.log('Starting Terma component initialization');
-    // Load styles
-    loadStyles();
-    
-    // Set up event handlers
-    setupEventHandlers();
-    
-    console.log('Initializing terminal based on preference');
-    // Initialize terminal based on preference
-    await initializeBasedOnPreference();
-    
-    console.log('Terma component initialization complete');
-}
-
-// Initialize the component when the DOM is ready
-document.addEventListener('DOMContentLoaded', initTermaComponent);
-
-// Hook into Tekton UI system if available
-if (window.tektonUI) {
-    tektonUI.registerComponentHandler('terma', {
-        onActivate: function() {
-            console.log('Terma component activated');
-            if (termaTerminal && currentTerminalMode === 'advanced') {
-                termaTerminal.fitTerminal();
-            }
-        },
-        onDeactivate: function() {
-            console.log('Terma component deactivated');
-        }
-    });
-}
-</script>
-
-<!-- Terma Component CSS -->
-<style>
-/* Main container */
-.terma-container {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-    background-color: #1a1a1a;
-    color: #f0f0f0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Terminal header */
-.terma-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background-color: #2a2a2a;
-    border-bottom: 1px solid #3a3a3a;
-}
-
-.terma-title {
-    font-size: 16px;
-    font-weight: 500;
-}
-
-.terma-controls {
-    display: flex;
-    gap: 8px;
-}
-
-.terma-select {
-    background-color: #333;
-    color: #fff;
-    border: 1px solid #555;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 14px;
-}
-
-.terma-btn {
-    background-color: #333;
-    color: #fff;
-    border: 1px solid #555;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.terma-btn:hover {
-    background-color: #444;
-}
-
-.terma-btn-primary {
-    background-color: #0066cc;
-    border-color: #0077dd;
-}
-
-.terma-btn-primary:hover {
-    background-color: #0077dd;
-}
-
-/* Terminal content */
-.terma-content {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-}
-
-.terma-terminal, .simple-terminal {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-}
-
-/* LLM assistance panel */
-.terma-llm-assistance {
-    background-color: #2a2a2a;
-    border-top: 1px solid #3a3a3a;
-    max-height: 200px;
-    transition: max-height 0.3s ease, opacity 0.2s ease;
-    overflow: hidden;
-}
-
-.terma-llm-collapsed {
-    max-height: 36px;
-    overflow: hidden;
-}
-
-.terma-llm-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background-color: #2a2a2a;
-    cursor: pointer;
-    border-bottom: 1px solid #3a3a3a;
-}
-
-.terma-llm-title {
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.terma-llm-toggle-icon {
-    transition: transform 0.3s ease;
-}
-
-.terma-llm-toggle-collapsed .terma-llm-toggle-icon {
-    transform: rotate(180deg);
-}
-
-.terma-llm-content {
-    padding: 12px 16px;
-    height: calc(200px - 36px);
-    overflow-y: auto;
-    opacity: 1;
-    transition: opacity 0.2s ease;
-}
-
-.terma-llm-collapsed .terma-llm-content {
-    opacity: 0;
-}
-
-.terma-llm-output {
-    font-size: 14px;
-    line-height: 1.5;
-    color: #f0f0f0;
-}
-
-.terma-llm-output code {
-    background-color: #333;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-family: 'Courier New', monospace;
-    color: #f8f8f8;
-}
-
-.terma-llm-output pre {
-    background-color: #333;
-    padding: 12px;
-    border-radius: 4px;
-    margin: 10px 0;
-    overflow-x: auto;
-    border: 1px solid #444;
-}
-
-.terma-llm-output pre code {
-    background-color: transparent;
-    padding: 0;
-    border-radius: 0;
-    color: inherit;
-}
-
-.terma-llm-output h1, 
-.terma-llm-output h2, 
-.terma-llm-output h3 {
-    margin-top: 16px;
-    margin-bottom: 8px;
-    color: #e0e0e0;
-}
-
-.terma-llm-output ul, 
-.terma-llm-output ol {
-    margin: 8px 0;
-    padding-left: 24px;
-}
-
-.terma-llm-output li {
-    margin-bottom: 4px;
-}
-
-.terma-llm-output a {
-    color: #58a6ff;
-    text-decoration: none;
-}
-
-.terma-llm-output a:hover {
-    text-decoration: underline;
-}
-
-.terma-llm-loading {
-    color: #888;
-    font-style: italic;
-}
-
-.terma-llm-error {
-    color: #ff6b6b;
-    border-left: 3px solid #ff6b6b;
-    padding-left: 12px;
-}
-
-/* Modal */
-.terma-modal {
-    display: none;
-    position: fixed;
-    z-index: 9999;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-}
-
-.terma-modal-content {
-    background-color: #2a2a2a;
-    margin: 10% auto;
-    padding: 0;
-    border: 1px solid #3a3a3a;
-    border-radius: 8px;
-    width: 80%;
-    max-width: 500px;
-    max-height: 80%;
-    overflow-y: auto;
-}
-
-.terma-modal-header {
-    padding: 16px;
-    border-bottom: 1px solid #3a3a3a;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.terma-modal-header h2 {
-    margin: 0;
-    font-size: 18px;
-}
-
-.terma-modal-close {
-    color: #aaa;
-    font-size: 24px;
-    font-weight: bold;
-    background: none;
-    border: none;
-    cursor: pointer;
-}
-
-.terma-modal-close:hover {
-    color: #fff;
-}
-
-.terma-modal-body {
-    padding: 16px;
-}
-
-.terma-modal-footer {
-    padding: 16px;
-    border-top: 1px solid #3a3a3a;
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-}
-
-.terma-settings-group {
-    margin-bottom: 16px;
-}
-
-.terma-settings-group label {
-    display: block;
-    margin-bottom: 8px;
-}
-
-.terma-settings-group input, .terma-settings-group select {
-    background-color: #333;
-    color: #fff;
-    border: 1px solid #555;
-    border-radius: 4px;
-    padding: 8px;
-    width: 100%;
-}
-
-.terma-settings-help {
-    font-size: 12px;
-    color: #aaa;
-    margin-top: 4px;
-}
-</style>
+<!-- Reference external libraries through CDN -->
+<script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/github-dark.min.css">
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/highlight.min.js"></script>
