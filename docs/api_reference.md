@@ -1,367 +1,414 @@
 # Terma API Reference
 
-This document provides detailed information about the Terma Terminal API endpoints and WebSocket interface.
+This document provides a comprehensive reference for the Terma Terminal API, including both REST and WebSocket interfaces.
 
 ## REST API Endpoints
 
-Terma provides a RESTful API for managing terminal sessions and accessing terminal functionality.
+The Terma API is organized into the following categories:
 
-### Base URL
+- [Status Endpoints](#status-endpoints)
+- [Session Management Endpoints](#session-management-endpoints)
+- [Terminal I/O Endpoints](#terminal-io-endpoints)
+- [LLM Integration Endpoints](#llm-integration-endpoints)
+- [Hermes Integration Endpoints](#hermes-integration-endpoints)
+- [UI Integration Endpoints](#ui-integration-endpoints)
 
-`http://localhost:8765/api`
+### Status Endpoints
 
-### Session Management
+#### `GET /`
 
-#### List Terminal Sessions
+Root endpoint that returns basic information about the API.
 
-Lists all active terminal sessions.
+**Response:**
+```json
+{
+  "message": "Terma Terminal API",
+  "version": "0.1.0"
+}
+```
 
-- **URL:** `/sessions`
-- **Method:** `GET`
-- **Response Format:** JSON
-- **Response Example:**
-  ```json
-  {
-    "sessions": [
-      {
-        "id": "f8e7d6c5-b4a3-2c1d-0e9f-8g7h6i5j4k3l",
-        "active": true,
-        "created_at": 1712345678.9,
-        "last_activity": 1712345700.1,
-        "shell_command": "/bin/bash",
-        "idle_time": 21.2
-      }
-    ]
-  }
-  ```
+#### `GET /health`
 
-#### Create Terminal Session
+Health check endpoint for monitoring service status.
 
-Creates a new terminal session.
+**Response:**
+```json
+{
+  "status": "healthy",
+  "uptime": 3600.5,
+  "version": "0.1.0",
+  "active_sessions": 2
+}
+```
 
-- **URL:** `/sessions`
-- **Method:** `POST`
-- **Request Format:** JSON
-- **Request Example:**
-  ```json
-  {
+### Session Management Endpoints
+
+#### `GET /api/sessions`
+
+List all active terminal sessions.
+
+**Response:**
+```json
+{
+  "sessions": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "active": true,
+      "created_at": 1617184632.54,
+      "last_activity": 1617184932.54,
+      "shell_command": "/bin/bash",
+      "idle_time": 300.0
+    }
+  ]
+}
+```
+
+#### `POST /api/sessions`
+
+Create a new terminal session.
+
+**Request Body:**
+```json
+{
+  "shell_command": "/bin/bash"
+}
+```
+
+**Response:**
+```json
+{
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "created_at": 1617184632.54
+}
+```
+
+#### `GET /api/sessions/{session_id}`
+
+Get information about a specific terminal session.
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "active": true,
+  "created_at": 1617184632.54,
+  "last_activity": 1617184932.54,
+  "shell_command": "/bin/bash",
+  "idle_time": 300.0
+}
+```
+
+#### `DELETE /api/sessions/{session_id}`
+
+Close a terminal session.
+
+**Response:**
+```json
+{
+  "status": "success"
+}
+```
+
+### Terminal I/O Endpoints
+
+#### `POST /api/sessions/{session_id}/write`
+
+Write data to a terminal session.
+
+**Request Body:**
+```json
+{
+  "data": "ls -la\n"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "bytes_written": 7
+}
+```
+
+#### `GET /api/sessions/{session_id}/read`
+
+Read data from a terminal session.
+
+**Query Parameters:**
+- `size` (optional): Maximum number of bytes to read. Default: 1024
+
+**Response:**
+```json
+{
+  "data": "total 128\ndrwxr-xr-x  3 user group  96 Apr  1 10:50 .\n..."
+}
+```
+
+### LLM Integration Endpoints
+
+#### `GET /api/llm/providers`
+
+Get available LLM providers and models.
+
+**Response:**
+```json
+{
+  "providers": {
+    "claude": {
+      "name": "Claude",
+      "models": [
+        {
+          "id": "claude-3-sonnet-20240229",
+          "name": "Claude 3 Sonnet"
+        }
+      ]
+    },
+    "openai": {
+      "name": "OpenAI",
+      "models": [
+        {
+          "id": "gpt-4",
+          "name": "GPT-4"
+        }
+      ]
+    }
+  },
+  "current_provider": "claude",
+  "current_model": "claude-3-sonnet-20240229"
+}
+```
+
+#### `GET /api/llm/models/{provider_id}`
+
+Get models for a specific LLM provider.
+
+**Response:**
+```json
+{
+  "models": [
+    {
+      "id": "claude-3-sonnet-20240229",
+      "name": "Claude 3 Sonnet"
+    },
+    {
+      "id": "claude-3-haiku-20240307",
+      "name": "Claude 3 Haiku"
+    }
+  ],
+  "current_model": "claude-3-sonnet-20240229"
+}
+```
+
+#### `POST /api/llm/set`
+
+Set the LLM provider and model.
+
+**Request Body:**
+```json
+{
+  "provider": "claude",
+  "model": "claude-3-sonnet-20240229"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success"
+}
+```
+
+### Hermes Integration Endpoints
+
+#### `POST /api/hermes/message`
+
+Handle messages from Hermes.
+
+**Request Body:**
+```json
+{
+  "id": "msg-123456",
+  "source": "hermes",
+  "target": "terma",
+  "command": "TERMINAL_CREATE",
+  "timestamp": 1617184632.54,
+  "payload": {
     "shell_command": "/bin/bash"
   }
-  ```
-- **Response Format:** JSON
-- **Response Example:**
-  ```json
-  {
-    "session_id": "f8e7d6c5-b4a3-2c1d-0e9f-8g7h6i5j4k3l",
-    "created_at": 1712345678.9
+}
+```
+
+**Response:** 
+Varies based on the command.
+
+#### `POST /api/events`
+
+Handle events from Hermes.
+
+**Request Body:**
+```json
+{
+  "event": "component.initialized",
+  "source": "hermes",
+  "timestamp": 1617184632.54,
+  "payload": {
+    "component_id": "rhetor"
   }
-  ```
+}
+```
 
-#### Get Session Information
+**Response:**
+```json
+{
+  "status": "success"
+}
+```
 
-Gets information about a specific terminal session.
+### UI Integration Endpoints
 
-- **URL:** `/sessions/{session_id}`
-- **Method:** `GET`
-- **Response Format:** JSON
-- **Response Example:**
-  ```json
-  {
-    "id": "f8e7d6c5-b4a3-2c1d-0e9f-8g7h6i5j4k3l",
-    "active": true,
-    "created_at": 1712345678.9,
-    "last_activity": 1712345700.1,
-    "shell_command": "/bin/bash",
-    "idle_time": 21.2
-  }
-  ```
+#### `GET /terminal/launch`
 
-#### Close Terminal Session
+Launch a standalone terminal for a session.
 
-Closes a terminal session.
+**Query Parameters:**
+- `session_id`: The ID of the session to connect to
 
-- **URL:** `/sessions/{session_id}`
-- **Method:** `DELETE`
-- **Response Format:** JSON
-- **Response Example:**
-  ```json
-  {
-    "status": "success"
-  }
-  ```
+**Response:**
+HTML content for the standalone terminal UI.
 
-### Terminal I/O
+## WebSocket API
 
-#### Write to Terminal
+The WebSocket API enables real-time terminal interaction and is accessed through the `/ws/{session_id}` endpoint.
 
-Writes data to a terminal session.
+### Connection
 
-- **URL:** `/sessions/{session_id}/write`
-- **Method:** `POST`
-- **Request Format:** JSON
-- **Request Example:**
-  ```json
-  {
-    "data": "ls -la\n"
-  }
-  ```
-- **Response Format:** JSON
-- **Response Example:**
-  ```json
-  {
-    "status": "success",
-    "bytes_written": 6
-  }
-  ```
+To establish a WebSocket connection, connect to:
 
-#### Read from Terminal
+```
+ws://{host}:{port}/ws/{session_id}
+```
 
-Reads data from a terminal session.
+### Message Format
 
-- **URL:** `/sessions/{session_id}/read`
-- **Method:** `GET`
-- **Query Parameters:**
-  - `size` (optional): Maximum number of bytes to read (default: 1024)
-- **Response Format:** JSON
-- **Response Example:**
-  ```json
-  {
-    "data": "total 12\ndrwxr-xr-x  2 user user 4096 Apr  1 12:00 .\ndrwxr-xr-x 10 user user 4096 Apr  1 11:00 ..\n-rw-r--r--  1 user user   42 Apr  1 12:00 file.txt\n"
-  }
-  ```
+All messages are JSON objects with a `type` field that indicates the message type.
 
-### Hermes Integration
+### Client-to-Server Messages
 
-#### Handle Hermes Message
+#### Input Message
 
-Handles a message from Hermes.
+Send terminal input to the server.
 
-- **URL:** `/hermes/message`
-- **Method:** `POST`
-- **Request Format:** JSON
-- **Request Example:**
-  ```json
-  {
-    "id": "msg123",
-    "source": "Prometheus",
-    "target": "Terma",
-    "command": "terminal.create",
-    "timestamp": 1712345678.9,
-    "payload": {
-      "shell_command": "/bin/bash"
-    }
-  }
-  ```
-- **Response Format:** JSON
-- **Response Example:**
-  ```json
-  {
-    "id": "msg123",
-    "status": "success",
-    "source": "Terma",
-    "target": "Prometheus",
-    "response_to": "terminal.create",
-    "payload": {
-      "session_id": "f8e7d6c5-b4a3-2c1d-0e9f-8g7h6i5j4k3l"
-    }
-  }
-  ```
+```json
+{
+  "type": "input",
+  "data": "ls -la\n"
+}
+```
 
-#### Handle Hermes Event
+#### Resize Message
 
-Handles an event from Hermes.
+Notify the server of terminal size changes.
 
-- **URL:** `/events`
-- **Method:** `POST`
-- **Request Format:** JSON
-- **Request Example:**
-  ```json
-  {
-    "event": "terminal.session.created",
-    "source": "Rhetor",
-    "timestamp": 1712345678.9,
-    "payload": {
-      "session_id": "f8e7d6c5-b4a3-2c1d-0e9f-8g7h6i5j4k3l"
-    }
-  }
-  ```
-- **Response Format:** JSON
-- **Response Example:**
-  ```json
-  {
-    "status": "success"
-  }
-  ```
+```json
+{
+  "type": "resize",
+  "rows": 24,
+  "cols": 80
+}
+```
 
-### Health Monitoring
+#### LLM Assistance Request
 
-#### Health Check
+Request LLM assistance for a command.
 
-Checks the health status of the Terma service.
+```json
+{
+  "type": "llm_assist",
+  "command": "find . -name \"*.js\" | xargs grep \"function\"",
+  "is_output_analysis": false
+}
+```
 
-- **URL:** `/health`
-- **Method:** `GET`
-- **Response Format:** JSON
-- **Response Example:**
-  ```json
-  {
-    "status": "healthy",
-    "uptime": 3600.5,
-    "version": "0.1.0",
-    "active_sessions": 3
-  }
-  ```
+### Server-to-Client Messages
 
-## WebSocket Interface
+#### Output Message
 
-Terma provides a WebSocket interface for real-time terminal communication.
+Terminal output from the server.
 
-### Terminal WebSocket
+```json
+{
+  "type": "output",
+  "data": "total 128\ndrwxr-xr-x  3 user group  96 Apr  1 10:50 .\n..."
+}
+```
 
-- **URL:** `ws://localhost:8765/ws/{session_id}`
-- **Description:** Provides real-time interaction with a terminal session.
+#### Error Message
 
-#### Messages from Client to Server
+Error notification from the server.
 
-1. **Terminal Input**
+```json
+{
+  "type": "error",
+  "message": "Session expired"
+}
+```
 
-   Send input to the terminal.
-   ```json
-   {
-     "type": "input",
-     "data": "ls -la\n"
-   }
-   ```
+#### LLM Response Message
 
-2. **Terminal Resize**
+Response from LLM for assistance requests.
 
-   Resize the terminal.
-   ```json
-   {
-     "type": "resize",
-     "rows": 24,
-     "cols": 80
-   }
-   ```
+```json
+{
+  "type": "llm_response",
+  "content": "This command finds all JavaScript files and searches for the word 'function' in them.",
+  "loading": false,
+  "error": false
+}
+```
 
-3. **LLM Assistance Request**
+## Client Library
 
-   Request LLM assistance for a command.
-   ```json
-   {
-     "type": "llm_assist",
-     "command": "docker run -it --rm ubuntu"
-   }
-   ```
+Terma provides a JavaScript client library (`terma-terminal.js`) for easy integration with web applications. The library handles WebSocket communication, terminal rendering, and event handling.
 
-#### Messages from Server to Client
+### Example Usage
 
-1. **Terminal Output**
+```javascript
+// Create a Terma client
+const termaClient = new TermaClient({
+  apiUrl: 'http://localhost:8765/api',
+  wsUrl: 'ws://localhost:8765/ws'
+});
 
-   Output from the terminal.
-   ```json
-   {
-     "type": "output",
-     "data": "total 12\ndrwxr-xr-x  2 user user 4096 Apr  1 12:00 .\ndrwxr-xr-x 10 user user 4096 Apr  1 11:00 ..\n-rw-r--r--  1 user user   42 Apr  1 12:00 file.txt\n"
-   }
-   ```
+// Create a terminal session
+const sessionId = await termaClient.createSession('/bin/bash');
 
-2. **Error Message**
+// Connect to the session
+await termaClient.connectToSession(sessionId);
 
-   Error message from the server.
-   ```json
-   {
-     "type": "error",
-     "message": "Failed to execute command"
-   }
-   ```
+// Send input to the terminal
+termaClient.sendInput('ls -la\n');
 
-3. **LLM Response**
+// Request LLM assistance
+termaClient.requestLlmAssistance('find . -type f -name "*.py"');
+```
 
-   Response from the LLM assistant.
-   ```json
-   {
-     "type": "llm_response",
-     "content": "The `docker run -it --rm ubuntu` command starts a new Docker container with the Ubuntu image. The flags mean:\n- `-i`: Interactive mode (keeps STDIN open)\n- `-t`: Allocates a pseudo-TTY\n- `--rm`: Automatically removes the container when it exits"
-   }
-   ```
+## Error Handling
 
-## Hermes Integration Capabilities
+The API uses standard HTTP status codes for error responses:
 
-Terma registers the following capabilities with Hermes:
+- `200 OK`: Successful operation
+- `400 Bad Request`: Invalid request parameters
+- `404 Not Found`: Resource not found (e.g., session doesn't exist)
+- `500 Internal Server Error`: Server-side error
 
-1. **terminal.create**
-   - Creates a new terminal session
-   - Parameters:
-     - `shell_command` (optional): Shell command to run
-   - Returns:
-     - `session_id`: ID of the created session
+Error responses include a JSON object with a `detail` field describing the error:
 
-2. **terminal.close**
-   - Closes a terminal session
-   - Parameters:
-     - `session_id`: ID of the session to close
-   - Returns:
-     - `status`: Operation status
+```json
+{
+  "detail": "Session 550e8400-e29b-41d4-a716-446655440000 not found"
+}
+```
 
-3. **terminal.write**
-   - Writes data to a terminal session
-   - Parameters:
-     - `session_id`: ID of the session to write to
-     - `data`: Data to write
-   - Returns:
-     - `status`: Operation status
-     - `bytes_written`: Number of bytes written
+## API Rate Limits
 
-4. **terminal.read**
-   - Reads data from a terminal session
-   - Parameters:
-     - `session_id`: ID of the session to read from
-     - `size` (optional): Maximum number of bytes to read
-   - Returns:
-     - `data`: Terminal output data
-
-5. **terminal.list**
-   - Lists all terminal sessions
-   - Parameters: none
-   - Returns:
-     - `sessions`: List of session information
-
-6. **terminal.resize**
-   - Resizes a terminal session
-   - Parameters:
-     - `session_id`: ID of the session to resize
-     - `rows`: Number of rows
-     - `cols`: Number of columns
-   - Returns:
-     - `status`: Operation status
-
-## Hermes Events
-
-Terma publishes the following events to Hermes:
-
-1. **terminal.session.created**
-   - Published when a new terminal session is created
-   - Payload:
-     - `session_id`: ID of the created session
-     - `shell_command`: Shell command used (if any)
-     - `created_at`: Creation timestamp
-
-2. **terminal.session.closed**
-   - Published when a terminal session is closed
-   - Payload:
-     - `session_id`: ID of the closed session
-     - `closed_at`: Closing timestamp
-
-3. **terminal.output.available**
-   - Published when new output is available from a terminal
-   - Payload:
-     - `session_id`: ID of the session
-     - `output_size`: Size of the available output in bytes
-
-4. **terminal.command.executed**
-   - Published when a command is executed in a terminal
-   - Payload:
-     - `session_id`: ID of the session
-     - `command`: The command that was executed
-EOF < /dev/null
+Currently, there are no strict rate limits implemented. However, excessive API requests may impact performance, especially when creating multiple terminal sessions.

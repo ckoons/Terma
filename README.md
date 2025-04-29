@@ -14,6 +14,7 @@ Terma is an advanced terminal system designed for integration with the Tekton ec
 - **Hephaestus UI Integration**: Rich terminal UI with theme support
 - **Multiple LLM Providers**: Support for Claude, OpenAI, and other LLM services
 - **Markdown Rendering**: Beautiful rendering of LLM responses with syntax highlighting
+- **Single Port Architecture**: Compatible with Tekton's unified port management system
 
 ## Quick Start
 
@@ -73,62 +74,31 @@ Then open Hephaestus and select the Terma Terminal component.
 
 ### Core Documentation
 
+- [Getting Started](./docs/getting_started.md): Quick start guide for new users and developers
 - [Architecture](./docs/architecture.md): System design and component interactions
-- [API Reference](./docs/api_reference.md): API reference for both REST and WebSocket interfaces
+- [API Reference](./docs/api_reference.md): Comprehensive API documentation for REST and WebSocket interfaces
 - [Integration](./docs/integration.md): How to integrate with other Tekton components
 - [Usage](./docs/usage.md): Detailed usage examples for both embedded and standalone modes
+- [Installation](./docs/installation.md): Complete installation and configuration instructions
+- [Developer Guide](./docs/developer_guide.md): Guide for developers who want to extend or modify Terma
 
-### Implementation Documentation
+### Single Port Architecture
 
-- [Implementation Guide](/MetaData/Implementation/TermaImplementation.md): Comprehensive implementation documentation
-- [Integration Points](/MetaData/Implementation/TermaIntegrationPoints.md): Detailed integration interfaces and protocols
-- [Vision & Concepts](/MetaData/Implementation/TermaVision.md): Conceptual overview and long-term vision
+Terma follows the Tekton Single Port Architecture pattern, providing standardized endpoints:
 
-### Project Status
+- **HTTP API**: Available at `/api/*` endpoints
+- **WebSocket**: Available at `/ws/{session_id}` endpoint 
+- **UI**: Available at `/terminal/launch` endpoint
 
-- [PHASE3_COMPLETED.md](./PHASE3_COMPLETED.md): Summary of completed Phase 3 implementation
-- [PHASE4_PLANNING.md](./PHASE4_PLANNING.md): Planning document for Phase 4 implementation
+The API is designed to work seamlessly when deployed behind a proxy with path-based routing, following the ecosystem's standardized port allocation scheme.
 
-### Documentation Hierarchy
+### Component Interaction
 
-The Terma documentation follows a hierarchical structure:
+Terma interacts with other Tekton components through:
 
-1. **Top-level Understanding** (for new developers/AI sessions):
-   - **[TermaImplementation.md](/MetaData/Implementation/TermaImplementation.md)**: Comprehensive implementation details
-   - **[TermaVision.md](/MetaData/Implementation/TermaVision.md)**: Conceptual overview and future direction
-   - **[getting_started.md](./docs/getting_started.md)**: How to install and begin development
-
-2. **Specialized References**:
-   - **[TermaIntegrationPoints.md](/MetaData/Implementation/TermaIntegrationPoints.md)**: Integration APIs and protocols
-   - **[api_reference.md](./docs/api_reference.md)**: Detailed API documentation
-   - **[architecture.md](./docs/architecture.md)**: Technical system architecture
-
-3. **User Guides**:
-   - **[usage.md](./docs/usage.md)**: End-user documentation
-   - **[installation.md](./docs/installation.md)**: Installation instructions
-
-### Documentation Changes and Recommendations
-
-We've recently reorganized the documentation to improve clarity and comprehensiveness:
-
-1. **Consolidated Implementation Documentation**:
-   - Combined implementation details into a comprehensive guide
-   - Added code examples and troubleshooting information
-   - Updated status and next steps information
-
-2. **Combined Installation and Developer Guide**:
-   - Created a unified getting_started.md that covers both installation and development
-   - Added quick start examples and workflow guidelines
-
-3. **Maintained Specialized Documentation**:
-   - Kept integration points as a standalone technical reference
-   - Preserved vision document for conceptual understanding
-   - Maintained API and architecture docs for specialized reference
-
-For new developers and AI assistants, we recommend starting with:
-1. **[TermaImplementation.md](/MetaData/Implementation/TermaImplementation.md)** for comprehensive implementation details
-2. **[TermaIntegrationPoints.md](/MetaData/Implementation/TermaIntegrationPoints.md)** for integration information
-3. **[getting_started.md](./docs/getting_started.md)** for installation and development setup
+1. **Hermes**: For service discovery and message passing
+2. **LLM Adapter**: For AI-assisted terminal capabilities 
+3. **Hephaestus UI**: For visual presentation and user interaction
 
 ## System Requirements
 
@@ -145,4 +115,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - Terma is part of the Tekton ecosystem, an intelligent orchestration system that coordinates multiple AI models and resources.
 - Special thanks to the Tekton team for their support and collaboration.
-EOF < /dev/null

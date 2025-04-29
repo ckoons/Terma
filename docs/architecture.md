@@ -1,243 +1,162 @@
 # Terma Architecture
 
-This document describes the architecture of Terma, the terminal integration system for Tekton.
-
 ## Overview
 
-Terma is a terminal system designed for integration with the Tekton ecosystem. It provides rich terminal functionality with advanced features such as:
+Terma is a terminal integration system for the Tekton ecosystem that provides rich terminal functionality with PTY-based terminal sessions, WebSocket communication, LLM assistance, and UI integration. It serves as a comprehensive terminal solution that can be embedded in other applications (particularly the Hephaestus UI) or used as a standalone service.
 
-- PTY-based terminal sessions
-- WebSocket communication for real-time interaction
-- LLM assistance for terminal commands
-- Hermes integration for ecosystem communication
-- Hephaestus UI integration
+## System Architecture
 
-## System Components
-
-The Terma system consists of several key components:
+Terma follows a layered architecture with clear separation of concerns:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                          Terma System                           │
-│                                                                 │
-│  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐    │
-│  │  Terminal     │    │  Session      │    │   API         │    │
-│  │  Management   │◄───┤  Management   │◄───┤   Layer       │    │
-│  └───────┬───────┘    └───────────────┘    └───────┬───────┘    │
-│          │                                         │            │
-│          ▼                                         ▼            │
-│  ┌───────────────┐                        ┌───────────────┐     │
-│  │  PTY          │                        │  WebSocket    │     │
-│  │  Integration  │                        │  Server       │     │
-│  └───────────────┘                        └───────────────┘     │
-│                                                                 │
-│  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐    │
-│  │  LLM          │    │  Hermes       │    │  Hephaestus   │    │
-│  │  Integration  │    │  Integration  │    │  Integration  │    │
-│  └───────────────┘    └───────────────┘    └───────────────┘    │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────┐
+│                   UI Layer                │
+│ (terma-component.html, terma-terminal.js) │
+└───────────────────────────────────────────┘
+                     ▲
+                     │
+                     ▼
+┌───────────────────────────────────────────┐
+│               API Layer                   │
+│       (app.py, websocket.py, ui_server.py)│
+└───────────────────────────────────────────┘
+                     ▲
+                     │
+                     ▼
+┌───────────────────────────────────────────┐
+│               Core Layer                  │
+│ (terminal.py, session_manager.py, llm_adapter.py) │
+└───────────────────────────────────────────┘
+                     ▲
+                     │
+                     ▼
+┌───────────────────────────────────────────┐
+│           Integration Layer               │
+│       (hermes_integration.py)             │
+└───────────────────────────────────────────┘
 ```
 
-### Core Components
+### Core Layer
 
-1. **Terminal Management**
-   - Handles the core terminal functionality
-   - Manages PTY (Pseudo-Terminal) interactions
-   - Processes I/O between the user and the terminal
+The core layer handles terminal session management, PTY processes, and interactions with LLMs.
 
-2. **Session Management**
-   - Creates and manages terminal sessions
-   - Tracks session state and activity
-   - Handles session lifecycle (creation, usage, cleanup)
+#### Key Components:
 
-3. **API Layer**
-   - Provides REST API endpoints for terminal operations
-   - Exposes session management functionality
-   - Handles HTTP requests and responses
+1. **TerminalSession** (`terminal.py`): Manages individual terminal sessions with PTY (pseudoterminal) interfaces. Handles starting, stopping, reading from, and writing to terminal processes.
 
-4. **WebSocket Server**
-   - Enables real-time terminal communication
-   - Manages WebSocket connections and message handling
-   - Provides direct terminal interaction
+2. **SessionManager** (`session_manager.py`): Creates, manages, and monitors multiple terminal sessions. Handles session creation, closing, and idle session cleanup.
 
-### Integration Components
+3. **LLMAdapter** (`llm_adapter.py`): Facilitates communication with language models for terminal assistance. Supports multiple providers and models through a unified interface.
 
-5. **PTY Integration**
-   - Interfaces with the operating system's PTY functionality
-   - Manages PTY execution and I/O
-   - Handles terminal process management
+### API Layer
 
-6. **LLM Integration**
-   - Connects to LLM services for terminal assistance
-   - Processes command analysis requests
-   - Provides contextual help for terminal operations
+The API layer exposes the core functionality through HTTP and WebSocket interfaces.
 
-7. **Hermes Integration**
-   - Registers Terma capabilities with Hermes
-   - Processes messages from other Tekton components
-   - Publishes events to the Tekton ecosystem
+#### Key Components:
 
-8. **Hephaestus Integration**
-   - Provides UI components for embedding in Hephaestus
-   - Manages terminal display and interaction
-   - Supports UI customization and settings
+1. **FastAPI Application** (`app.py`): Provides REST API endpoints for terminal session management, including creating, listing, and closing sessions, as well as reading from and writing to sessions.
 
-## Data Flow
+2. **WebSocket Server** (`websocket.py`): Manages real-time bidirectional communication for terminal I/O, supporting features like streaming output and immediate input.
 
-### Terminal Session Creation
+3. **UI Server** (`ui_server.py`): Serves the terminal UI components and handles static assets.
 
-```
-┌──────────┐    ┌───────────┐    ┌────────────┐    ┌─────────┐
-│  Client  │───►│  API      │───►│  Session   │───►│  PTY    │
-│  Request │    │  Endpoint │    │  Manager   │    │  Process│
-└──────────┘    └───────────┘    └────────────┘    └─────────┘
-                                       │
-                                       ▼
-                                 ┌────────────┐
-                                 │  Hermes    │
-                                 │  Event     │
-                                 └────────────┘
-```
+### UI Layer
 
-1. Client sends a request to create a terminal session
-2. API endpoint processes the request
-3. Session manager creates a new session
-4. PTY process is started with specified shell
-5. Session creation event is published to Hermes
+The UI layer provides the visual interface for users to interact with terminal sessions.
 
-### Terminal I/O
+#### Key Components:
+
+1. **Terma Component** (`terma-component.html`, `terma-component.js`): A web component for embedding in the Hephaestus UI, providing a rich terminal experience with xterm.js integration.
+
+2. **Terminal JS** (`terma-terminal.js`): JavaScript library for terminal functionality, handling rendering, input, output, and WebSocket communication.
+
+3. **CSS Styles** (`terma-terminal.css`): Styling for the terminal interface.
+
+### Integration Layer
+
+The integration layer connects Terma with other Tekton components, particularly the Hermes messaging system.
+
+#### Key Components:
+
+1. **Hermes Integration** (`hermes_integration.py`): Registers Terma with Hermes service discovery, handles messages from other components, and publishes events.
+
+## Communication Flows
+
+### Terminal Session Communication
 
 ```
-┌──────────┐    ┌───────────┐    ┌────────────┐    ┌─────────┐
-│  Client  │◄──►│  WebSocket│◄──►│  Session   │◄──►│  PTY    │
-│  Browser │    │  Server   │    │  Manager   │    │  Process│
-└──────────┘    └───────────┘    └────────────┘    └─────────┘
-     ▲                                 │
-     │                                 ▼
-     │                           ┌────────────┐
-     └───────────────────────────┤  LLM       │
-                                 │  Assistant │
-                                 └────────────┘
+User Input ──► UI Component ──► WebSocket ──► WebSocket Server ──► Session Manager ──► Terminal Session ──► PTY Process
+                                                                                                              │
+Terminal Output ◄── UI Component ◄── WebSocket ◄── WebSocket Server ◄── Session Manager ◄── Terminal Session ◄┘
 ```
 
-1. Client connects to WebSocket server for real-time communication
-2. User input is sent through WebSocket to session manager
-3. Session manager forwards input to PTY process
-4. PTY output is sent back through session manager to WebSocket
-5. Client displays output in terminal UI
-6. LLM assistance is requested for help with commands
-
-### Hermes Communication
+### LLM Assistance Flow
 
 ```
-┌──────────┐    ┌───────────┐    ┌────────────┐
-│  Hermes  │───►│  API      │───►│  Hermes    │
-│  Message │    │  Endpoint │    │  Integration│
-└──────────┘    └───────────┘    └─────┬──────┘
-                                       │
-                                       ▼
-                                 ┌────────────┐
-                                 │  Session   │
-                                 │  Manager   │
-                                 └────────────┘
+User Query ──► UI Component ──► WebSocket ──► WebSocket Server ──► Session Manager ──► LLM Adapter ──► LLM Provider
+                                                                                                          │
+LLM Response ◄── UI Component ◄── WebSocket ◄── WebSocket Server ◄── Session Manager ◄── LLM Adapter ◄───┘
 ```
 
-1. Hermes sends a message to Terma's API endpoint
-2. API endpoint forwards message to Hermes integration
-3. Hermes integration processes the message
-4. Appropriate terminal operation is performed
-5. Response is sent back to Hermes
+## Technical Implementation Details
 
-## Module Structure
+### PTY Process Management
 
-The Terma codebase is organized into the following modules:
+Terma uses the `ptyprocess` library to create and manage pseudo-terminal processes. This allows for:
 
-### Core Modules
+- Running interactive applications that require a TTY
+- Handling terminal control sequences
+- Supporting terminal resizing
+- Managing process lifecycles
 
-- `terma.core.terminal`: PTY-based terminal implementation
-- `terma.core.session_manager`: Terminal session management
-- `terma.core.llm_adapter`: LLM integration for terminal assistance
+### WebSocket Communication
 
-### API Modules
+Terma implements a WebSocket protocol for bidirectional communication between the UI and terminal sessions:
 
-- `terma.api.app`: FastAPI application for the REST API
-- `terma.api.websocket`: WebSocket server for terminal communication
-- `terma.api.ui_server`: Static file server for UI components
+- **Message Types**:
+  - `input`: Terminal input from the user
+  - `output`: Terminal output to the UI
+  - `resize`: Terminal resize events
+  - `error`: Error messages
+  - `llm_assist`: LLM assistance requests
+  - `llm_response`: LLM responses
 
-### Integration Modules
+### LLM Integration
 
-- `terma.integrations.hermes_integration`: Hermes integration for ecosystem communication
-- `terma.cli`: Command-line tools for terminal management
-- `terma.utils`: Utility functions and helpers
+The LLM Adapter supports different LLM providers and models:
 
-### UI Modules
+- **HTTP API**: For synchronous requests
+- **WebSocket API**: For streaming responses
+- **Provider Management**: Selection between different LLM providers (Claude, OpenAI, etc.)
+- **Context Management**: Maintaining conversation context for better assistance
 
-- `terma.ui.hephaestus`: UI components for Hephaestus integration
-- `terma.ui.js`: JavaScript implementations for terminal UI
-- `terma.ui.css`: CSS styles for terminal UI
+### Session Management
 
-## Security Considerations
+The Session Manager provides:
 
-Terma implements several security measures:
+- Session creation with different shell commands
+- Session cleanup for idle sessions
+- Session reconnection
+- Resource management
+- Session information tracking
 
-1. **Session Isolation**
-   - Each terminal session runs in its own isolated process
-   - Sessions have independent state and resources
+## Configuration
 
-2. **Input Validation**
-   - All API inputs are validated using Pydantic models
-   - WebSocket messages are validated before processing
+Terma can be configured through environment variables and configuration files:
 
-3. **Authentication**
-   - Relies on Tekton ecosystem authentication
-   - Integrates with Hermes for inter-component communication
+- **Port Configuration**: Default HTTP port 8765, WebSocket port 8767
+- **LLM Configuration**: Provider, model, and connection details
+- **Session Configuration**: Idle timeout, cleanup interval
+- **UI Configuration**: Theme, font, and other display options
 
-4. **Session Cleanup**
-   - Automatic cleanup of idle sessions
-   - Proper process termination on session close
+## Single Port Architecture Integration
 
-## Performance Considerations
+Terma follows the Tekton Single Port Architecture pattern:
 
-To ensure good performance, Terma implements:
+- **HTTP Endpoints**: Available at `/api/*` 
+- **WebSocket Endpoint**: Available at `/ws/{session_id}`
+- **UI Endpoints**: Available at `/terminal/launch`
+- **Standard Environment Variables**: Used for port configuration
+- **Graceful Degradation**: When LLM services are unavailable
 
-1. **Asynchronous Processing**
-   - Uses async/await for non-blocking I/O
-   - Supports concurrent terminal sessions
-
-2. **Efficient I/O Handling**
-   - Buffers terminal output for efficient transmission
-   - Batches updates when appropriate
-
-3. **Resource Management**
-   - Limits number of concurrent sessions
-   - Implements timeouts for long-running operations
-
-4. **Caching**
-   - Caches terminal settings and preferences
-   - Minimizes duplicate operations
-
-## Future Extensions
-
-The Terma architecture is designed to support future extensions:
-
-1. **Enhanced LLM Integration**
-   - Future integration with Rhetor for more sophisticated command assistance
-   - Learning from user interactions to improve suggestions
-
-2. **Multi-Session Management**
-   - Support for grouped terminal sessions
-   - Shared context between related terminals
-
-3. **Advanced Terminal Features**
-   - Terminal splitting and tiling
-   - Terminal session recording and playback
-
-4. **Ecosystem Integration**
-   - Deeper integration with other Tekton components
-   - Support for ecosystem-wide workflows
-
-## Conclusion
-
-Terma's architecture provides a flexible, efficient, and secure terminal system that integrates with the Tekton ecosystem. The modular design allows for easy maintenance and future extensions, while the focus on real-time communication ensures a responsive user experience.
-EOF < /dev/null
+The component works on its assigned port (8767) but can be accessed through path-based routing when deployed behind a proxy in the integrated Tekton environment.

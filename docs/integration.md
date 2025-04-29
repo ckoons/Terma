@@ -1,427 +1,480 @@
 # Terma Integration Guide
 
-This guide explains how to integrate Terma with other components in the Tekton ecosystem.
+This guide provides detailed information on integrating Terma with other systems, especially within the Tekton ecosystem. It covers integration patterns, APIs, communication protocols, and best practices.
 
 ## Table of Contents
 
-1. [Integrating with Hermes](#integrating-with-hermes)
-2. [Integrating with Hephaestus UI](#integrating-with-hephaestus-ui)
-3. [Integrating with LLM Adapter](#integrating-with-llm-adapter)
-4. [Integrating with External Applications](#integrating-with-external-applications)
-5. [Using Terma in Workflows](#using-terma-in-workflows)
+- [Integration with Tekton Components](#integration-with-tekton-components)
+- [Hermes Integration](#hermes-integration)
+- [LLM Adapter Integration](#llm-adapter-integration)
+- [Hephaestus UI Integration](#hephaestus-ui-integration)
+- [External System Integration](#external-system-integration)
+- [Single Port Architecture](#single-port-architecture)
+- [Client Libraries](#client-libraries)
+- [Event-Based Communication](#event-based-communication)
 
-## Integrating with Hermes
+## Integration with Tekton Components
 
-Terma integrates with the Hermes message bus to enable communication with other Tekton components.
+Terma is designed to work seamlessly with other Tekton components, following the ecosystem's architecture patterns.
 
-### Registering with Hermes
+### Core Integration Points
 
-To register Terma with Hermes, use the included registration script:
+1. **Hermes**: For service discovery and message passing
+2. **LLM Adapter**: For LLM assistance features
+3. **Hephaestus UI**: For visual presentation
+4. **Engram**: For persistent memory (future integration)
+5. **Rhetor**: For advanced language model features (future integration)
 
-```bash
-# From the Terma directory
-python register_with_hermes.py
+### Integration Architecture
+
+```
+┌───────────────────────────────────────┐
+│           Hephaestus UI               │
+└─────────────────┬─────────────────────┘
+                 │
+                 ▼
+┌───────────────────────────────────────┐
+│               Terma                   │
+└────┬──────────────┬───────────────┬───┘
+     │              │               │
+     ▼              ▼               ▼
+┌─────────┐  ┌─────────────┐  ┌─────────┐
+│ Hermes  │  │ LLM Adapter │  │ Engram  │
+└─────────┘  └─────────────┘  └─────────┘
 ```
 
-Or programmatically:
+## Hermes Integration
+
+Terma integrates with Hermes for service discovery, event publishing, and message handling.
+
+### Registration with Hermes
+
+Terma registers with Hermes by providing its capabilities and API endpoints.
 
 ```python
-from terma.integrations.hermes_integration import HermesIntegration
-
-# Initialize Hermes integration
-hermes = HermesIntegration(api_url="http://localhost:8000")
-
-# Register capabilities
-success = hermes.register_capabilities()
-if success:
-    print("Successfully registered with Hermes")
-else:
-    print("Failed to register with Hermes")
-```
-
-### Component Communication
-
-Other components can communicate with Terma through Hermes messages:
-
-```python
-import requests
-import json
-
-# Send a message to create a terminal session
-response = requests.post(
-    "http://localhost:8000/api/message",
-    json={
-        "id": "msg123",
-        "source": "MyComponent",
-        "target": "Terma",
-        "command": "terminal.create",
-        "timestamp": 1712345678.9,
-        "payload": {
-            "shell_command": "/bin/bash"
-        }
-    }
+# Python example of Terma registration with Hermes
+hermes_integration = HermesIntegration(
+    api_url="http://localhost:8000",
+    component_name="Terma",
+    capabilities=["terminal", "command_execution", "llm_terminal_assistance"]
 )
-
-# Process the response
-result = response.json()
-session_id = result["payload"]["session_id"]
-print(f"Created terminal session: {session_id}")
+hermes_integration.register_capabilities()
 ```
 
-### Subscribing to Terma Events
+### Capabilities Exposed via Hermes
 
-To subscribe to events from Terma:
+When registered with Hermes, Terma exposes the following capabilities:
 
-```python
-import requests
+1. **Terminal Sessions**: Create, manage, and interact with terminal sessions
+2. **Command Execution**: Execute commands in a terminal environment
+3. **LLM Terminal Assistance**: Provide AI-powered assistance for terminal commands
 
-# Subscribe to terminal session created events
-response = requests.post(
-    "http://localhost:8000/api/subscribe",
-    json={
-        "component": "MyComponent",
-        "event": "terminal.session.created",
-        "callback_url": "http://localhost:8080/api/events"
-    }
-)
+### Message Schema
 
-print(f"Subscription status: {response.status_code}")
-```
+Terma accepts the following message commands via Hermes:
 
-## Integrating with Hephaestus UI
-
-Terma provides UI components for integration with the Hephaestus UI system.
-
-### Automatic Installation
-
-The easiest way to integrate Terma with Hephaestus is using the included installation script:
-
-```bash
-# From the Terma directory
-./install_in_hephaestus.sh
-```
-
-This script creates the necessary symlinks and adds Terma to the Hephaestus component registry.
-
-### Manual Installation
-
-For manual installation:
-
-1. Copy or symlink the UI files to Hephaestus:
-
-```bash
-mkdir -p /path/to/hephaestus/ui/components/terma
-mkdir -p /path/to/hephaestus/ui/scripts/terma
-mkdir -p /path/to/hephaestus/ui/styles/terma
-
-ln -sf /path/to/terma/ui/hephaestus/terma-component.html /path/to/hephaestus/ui/components/terma/
-ln -sf /path/to/terma/ui/hephaestus/js/terma-component.js /path/to/hephaestus/ui/scripts/terma/
-ln -sf /path/to/terma/ui/hephaestus/css/terma-hephaestus.css /path/to/hephaestus/ui/styles/terma/
-```
-
-2. Add Terma to the Hephaestus component registry (`component_registry.json`):
+#### Create Session Command
 
 ```json
 {
-    "terma": {
-        "name": "Terma Terminal",
-        "description": "Advanced terminal with PTY integration and LLM assistance",
-        "icon": "terminal",
-        "componentPath": "components/terma/terma-component.html",
-        "scripts": [
-            "scripts/terma/terma-component.js"
-        ],
-        "styles": [
-            "styles/terma/terma-hephaestus.css"
-        ],
-        "position": "right-panel"
-    }
+  "command": "TERMINAL_CREATE",
+  "payload": {
+    "shell_command": "/bin/bash"
+  }
 }
 ```
 
-3. Add API routes to the Hephaestus server to serve Terma UI files:
+#### Execute Command
+
+```json
+{
+  "command": "TERMINAL_EXECUTE",
+  "payload": {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "command": "ls -la"
+  }
+}
+```
+
+#### Close Session
+
+```json
+{
+  "command": "TERMINAL_CLOSE",
+  "payload": {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+### Event Publication
+
+Terma publishes the following events to Hermes:
+
+#### Session Created Event
+
+```json
+{
+  "event": "terminal.session.created",
+  "payload": {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "shell_command": "/bin/bash",
+    "created_at": 1617184632.54
+  }
+}
+```
+
+#### Session Closed Event
+
+```json
+{
+  "event": "terminal.session.closed",
+  "payload": {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "closed_at": 1617184932.54
+  }
+}
+```
+
+## LLM Adapter Integration
+
+Terma integrates with the LLM Adapter to provide AI-powered assistance for terminal commands.
+
+### Connection to LLM Adapter
+
+Terma connects to the LLM Adapter using both HTTP and WebSocket protocols:
 
 ```python
-@app.get("/terma/ui/{path:path}")
-async def serve_terma_ui(path: str):
-    """Serve Terma UI files"""
-    terma_ui_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "Terma", "ui")
-    file_path = os.path.join(terma_ui_dir, path)
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        return FileResponse(file_path)
-    raise HTTPException(status_code=404, detail=f"Terma UI file {path} not found")
+# Simplified example of LLM Adapter connection
+self.adapter_url = self.config.get("llm.adapter_url", "http://localhost:8300")
+self.adapter_ws_url = self.config.get("llm.adapter_ws_url", "ws://localhost:8300/ws")
 ```
 
-### Customizing the UI
+### Single Port Architecture Support
 
-You can customize the Terma terminal UI appearance by modifying the CSS variables in your Hephaestus theme:
+With the Single Port Architecture, Terma connects to the LLM Adapter through path-based routing:
 
-```css
-body.theme-dark .terma-container {
-    --terminal-bg-color: #1a1a1a;
-    --terminal-fg-color: #f0f0f0;
-    --component-header-bg: #2a2a2a;
-    --component-border-color: #3a3a3a;
-    /* Additional variables... */
+```python
+# Single Port Architecture LLM Adapter connection
+base_url = "http://localhost:8300"
+self.adapter_url = f"{base_url}/api"
+self.adapter_ws_url = f"{base_url.replace('http', 'ws')}/ws"
+```
+
+### Message Format
+
+Terma sends the following message formats to the LLM Adapter:
+
+#### Command Analysis Request
+
+```json
+{
+  "message": "Please explain this command concisely: find . -name '*.py' | xargs grep 'def'",
+  "context_id": "terma",
+  "streaming": false,
+  "options": {
+    "model": "claude-3-sonnet-20240229",
+    "provider": "claude",
+    "temperature": 0.7,
+    "max_tokens": 500
+  }
 }
 ```
 
-## Integrating with LLM Adapter
+#### WebSocket Command
 
-Terma can integrate with LLM Adapter for command assistance.
+```json
+{
+  "type": "LLM_REQUEST",
+  "source": "TERMA",
+  "timestamp": 1617184632.54,
+  "payload": {
+    "message": "Please explain this command concisely: find . -name '*.py' | xargs grep 'def'",
+    "context": "terma",
+    "streaming": false,
+    "options": {
+      "model": "claude-3-sonnet-20240229",
+      "provider": "claude",
+      "temperature": 0.7,
+      "max_tokens": 500
+    }
+  }
+}
+```
 
-### Configuration
+### Graceful Degradation
 
-To configure LLM Adapter integration:
+Terma implements graceful degradation when the LLM Adapter is unavailable:
 
-1. Set the LLM Adapter URL in your environment:
+1. First attempts HTTP API
+2. Falls back to WebSocket API if HTTP fails
+3. Provides a fallback message if both connection methods fail
+
+## Hephaestus UI Integration
+
+Terma integrates with the Hephaestus UI through a web component that provides a rich terminal interface.
+
+### Component Installation
+
+To install the Terma component in Hephaestus:
 
 ```bash
-export LLM_ADAPTER_URL="http://localhost:8080"
+./install_in_hephaestus.sh
 ```
 
-2. Or configure it programmatically:
+This script:
+1. Copies the component files to Hephaestus UI
+2. Updates the component registry
+3. Configures the component to connect to Terma
 
-```python
-from terma.core.llm_adapter import LLMAdapter
+### Component Communication
 
-# Initialize LLM adapter with custom URL
-llm_adapter = LLMAdapter(adapter_url="http://localhost:8080")
+The Terma component communicates with the Terma server through:
 
-# Use the adapter
-response = await llm_adapter.analyze_command("session123", "docker run -it --rm ubuntu")
-print(response)
+1. REST API for session management
+2. WebSocket for real-time terminal I/O
+
+### Service Registration
+
+Terma registers a service with the Hephaestus UI service registry:
+
+```javascript
+// JavaScript example of service registration
+window.tektonUI.registerService('termaService', termaService);
 ```
 
-### Example Usage
+Other components can then access Terma functionality:
 
-To analyze a command with the LLM:
-
-```python
-from terma.core.llm_adapter import LLMAdapter
-
-async def example_usage():
-    llm_adapter = LLMAdapter()
-    
-    # Analyze a command
-    command_explanation = await llm_adapter.analyze_command(
-        "session123",
-        "docker run -it --rm ubuntu"
-    )
-    print(f"Command explanation: {command_explanation}")
-    
-    # Analyze command output
-    output_explanation = await llm_adapter.analyze_output(
-        "session123",
-        "ls -la",
-        "total 12\ndrwxr-xr-x  2 user user 4096 Apr  1 12:00 .\ndrwxr-xr-x 10 user user 4096 Apr  1 11:00 ..\n-rw-r--r--  1 user user   42 Apr  1 12:00 file.txt"
-    )
-    print(f"Output explanation: {output_explanation}")
+```javascript
+// Example of another component using Terma
+const termaService = window.tektonUI.services.termaService;
+termaService.createSession().then(sessionId => {
+  console.log(`Created terminal session: ${sessionId}`);
+});
 ```
 
-## Integrating with External Applications
+## External System Integration
 
-Terma can be integrated with external applications through its REST API and WebSocket interface.
+Terma can be integrated with external systems through its HTTP and WebSocket APIs.
 
 ### REST API Integration
 
-To interact with Terma's REST API from an external application:
+External systems can use the REST API to interact with Terma:
 
 ```python
+# Python example of REST API integration
 import requests
 
-# API base URL
-base_url = "http://localhost:8765/api"
-
-# Create a terminal session
+# Create a session
 response = requests.post(
-    f"{base_url}/sessions",
+    "http://localhost:8765/api/sessions",
     json={"shell_command": "/bin/bash"}
 )
 session_id = response.json()["session_id"]
 
-# Write to the terminal
-response = requests.post(
-    f"{base_url}/sessions/{session_id}/write",
+# Execute a command
+requests.post(
+    f"http://localhost:8765/api/sessions/{session_id}/write",
     json={"data": "ls -la\n"}
 )
 
-# Read from the terminal
-response = requests.get(f"{base_url}/sessions/{session_id}/read")
-output = response.json()["data"]
-print(output)
-
-# Close the session when done
-requests.delete(f"{base_url}/sessions/{session_id}")
+# Read output
+response = requests.get(
+    f"http://localhost:8765/api/sessions/{session_id}/read"
+)
+print(response.json()["data"])
 ```
 
 ### WebSocket Integration
 
-For real-time communication with a terminal session:
+For real-time interaction, external systems can use the WebSocket API:
 
 ```javascript
-// Connect to terminal WebSocket
-const sessionId = "your-session-id";
-const socket = new WebSocket(`ws://localhost:8765/ws/${sessionId}`);
+// JavaScript example of WebSocket integration
+const ws = new WebSocket(`ws://localhost:8765/ws/${sessionId}`);
 
-// Handle messages from the server
-socket.onmessage = (event) => {
-    const message = JSON.parse(event.data);
-    
-    if (message.type === "output") {
-        // Display terminal output
-        console.log(message.data);
-    } else if (message.type === "error") {
-        // Handle error
-        console.error(message.message);
-    } else if (message.type === "llm_response") {
-        // Display LLM assistance
-        console.log("LLM Assistance:", message.content);
-    }
+ws.onopen = () => {
+  console.log('WebSocket connected');
+  
+  // Send input
+  ws.send(JSON.stringify({
+    type: 'input',
+    data: 'ls -la\n'
+  }));
 };
 
-// Send input to the terminal
-function sendInput(text) {
-    socket.send(JSON.stringify({
-        type: "input",
-        data: text
-    }));
+ws.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  if (message.type === 'output') {
+    console.log(message.data);
+  }
+};
+```
+
+## Single Port Architecture
+
+Terma follows the Tekton Single Port Architecture pattern for simplified deployment and integration.
+
+### Path-Based Routing
+
+With Single Port Architecture, all Terma endpoints are accessed through a single port with path-based routing:
+
+- REST API: `/api/*`
+- WebSocket: `/ws/*`
+- UI: `/terminal/*`
+
+### Configuration for Single Port Architecture
+
+To configure Terma for Single Port Architecture:
+
+```bash
+# Set the port for the Single Port Architecture
+export TERMA_PORT=8767
+
+# Start Terma with Single Port Architecture
+python -m terma.cli.main
+```
+
+### Proxy Configuration
+
+When using a reverse proxy for Single Port Architecture:
+
+```nginx
+# Nginx example for Single Port Architecture
+location /terma/ {
+    proxy_pass http://localhost:8767/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
 }
 
-// Resize the terminal
-function resizeTerminal(rows, cols) {
-    socket.send(JSON.stringify({
-        type: "resize",
-        rows: rows,
-        cols: cols
-    }));
-}
-
-// Request LLM assistance
-function requestAssistance(command) {
-    socket.send(JSON.stringify({
-        type: "llm_assist",
-        command: command
-    }));
+location /terma/ws/ {
+    proxy_pass http://localhost:8767/ws/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
 }
 ```
 
-## Using Terma in Workflows
+## Client Libraries
 
-Terma can be incorporated into Tekton workflows using Hermes capabilities.
+Terma provides client libraries for easier integration.
 
-### Example Workflow Integration
+### Python Client
 
 ```python
-from tekton.workflow import Workflow
-from tekton.steps import Step
+from examples.terminal_client import TermaClient
 
-# Define a workflow that includes Terma terminal operations
-workflow = Workflow("CommandExecution")
-
-# Step 1: Create a terminal session
-create_terminal = Step(
-    name="CreateTerminal",
-    component="Terma",
-    capability="terminal.create",
-    params={
-        "shell_command": "/bin/bash"
-    },
-    outputs=["session_id"]
-)
-
-# Step 2: Execute a command
-execute_command = Step(
-    name="ExecuteCommand",
-    component="Terma",
-    capability="terminal.write",
-    params={
-        "session_id": "${steps.CreateTerminal.outputs.session_id}",
-        "data": "ls -la\n"
-    }
-)
-
-# Step 3: Read command output
-read_output = Step(
-    name="ReadOutput",
-    component="Terma",
-    capability="terminal.read",
-    params={
-        "session_id": "${steps.CreateTerminal.outputs.session_id}"
-    },
-    outputs=["data"]
-)
-
-# Step 4: Close the terminal
-close_terminal = Step(
-    name="CloseTerminal",
-    component="Terma",
-    capability="terminal.close",
-    params={
-        "session_id": "${steps.CreateTerminal.outputs.session_id}"
-    }
-)
-
-# Add steps to workflow
-workflow.add_step(create_terminal)
-workflow.add_step(execute_command)
-workflow.add_step(read_output)
-workflow.add_step(close_terminal)
-
-# Execute the workflow
-workflow.execute()
+async def example():
+    client = TermaClient(base_url="http://localhost:8765")
+    
+    # Create a session
+    session = await client.create_session()
+    session_id = session["session_id"]
+    
+    # Write a command
+    await client.write_to_session(session_id, "echo 'Hello, Terma!'\n")
+    
+    # Read output
+    response = await client.read_from_session(session_id)
+    print(response["data"])
+    
+    # Close the session
+    await client.close_session(session_id)
 ```
 
-### Terminal-Based Agents
+### JavaScript Client
 
-Terma can be used to create terminal-based agents within the Tekton ecosystem:
+```javascript
+import { TermaClient } from 'terma-client';
+
+const client = new TermaClient({
+  baseUrl: 'http://localhost:8765',
+  wsUrl: 'ws://localhost:8765/ws'
+});
+
+// Create a session
+client.createSession()
+  .then(sessionId => {
+    console.log(`Session created: ${sessionId}`);
+    
+    // Connect to the session
+    return client.connectToSession(sessionId);
+  })
+  .then(websocket => {
+    // Send input
+    client.sendInput('echo "Hello, Terma!"\n');
+    
+    // Register output handler
+    client.onOutput(data => console.log(data));
+  })
+  .catch(error => console.error('Error:', error));
+```
+
+## Event-Based Communication
+
+Terma uses event-based communication for asynchronous integration.
+
+### Published Events
+
+Terma publishes the following events:
+
+| Event | Description | Payload |
+|-------|-------------|---------|
+| `terminal.session.created` | Session created | `session_id`, `shell_command`, `created_at` |
+| `terminal.session.closed` | Session closed | `session_id`, `closed_at` |
+| `terminal.command.executed` | Command executed | `session_id`, `command`, `timestamp` |
+| `terminal.output.received` | Output received | `session_id`, `output`, `timestamp` |
+
+### Subscribing to Events
+
+Other components can subscribe to Terma events through Hermes:
 
 ```python
-from tekton.agent import Agent
-from terma.client import TermaClient
-
-class TerminalAgent(Agent):
-    def __init__(self, name, shell_command=None):
-        super().__init__(name)
-        self.terma_client = TermaClient()
-        self.session_id = None
-        self.shell_command = shell_command
-        
-    async def initialize(self):
-        # Create a terminal session
-        response = await self.terma_client.create_session(
-            shell_command=self.shell_command
-        )
-        self.session_id = response["session_id"]
-        
-    async def execute_command(self, command):
-        # Write command to terminal
-        await self.terma_client.write_to_session(
-            self.session_id, 
-            command + "\n"
-        )
-        
-        # Read output
-        response = await self.terma_client.read_from_session(
-            self.session_id
-        )
-        return response["data"]
-        
-    async def cleanup(self):
-        # Close the terminal session
-        if self.session_id:
-            await self.terma_client.close_session(self.session_id)
+# Python example of subscribing to Terma events through Hermes
+hermes_client = HermesClient(api_url="http://localhost:8000")
+hermes_client.subscribe_to_event("terminal.session.created", callback_function)
 ```
 
-## Summary
+### WebSocket Events
 
-Terma provides multiple integration points for other components and applications:
+Terma also emits events through WebSocket connections:
 
-1. **Hermes Integration** - For communication within the Tekton ecosystem
-2. **Hephaestus UI Integration** - For embedding terminal UI in Hephaestus
-3. **LLM Adapter Integration** - For terminal command assistance
-4. **External Application Integration** - Through REST API and WebSocket
-5. **Workflow Integration** - For use in Tekton workflows and agents
+```javascript
+// JavaScript example of handling WebSocket events
+const ws = new WebSocket(`ws://localhost:8765/ws/${sessionId}`);
 
-These integration capabilities make Terma a flexible and powerful terminal solution within the Tekton ecosystem.
-EOF < /dev/null
+ws.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  
+  switch (message.type) {
+    case 'output':
+      console.log('Terminal output:', message.data);
+      break;
+    case 'error':
+      console.error('Terminal error:', message.message);
+      break;
+    case 'llm_response':
+      console.log('LLM response:', message.content);
+      break;
+  }
+};
+```
+
+## Integration Best Practices
+
+1. **Use the Client Libraries**: Whenever possible, use the provided client libraries for the most reliable integration.
+
+2. **Handle Reconnections**: Implement WebSocket reconnection logic to maintain connection during network issues.
+
+3. **Graceful Degradation**: Implement fallback mechanisms when dependent services are unavailable.
+
+4. **Event-Based Communication**: Prefer event-based communication over polling for real-time updates.
+
+5. **Security Considerations**: When integrating in production environments, implement proper authentication and authorization.
+
+6. **Resource Management**: Close sessions when no longer needed to free up server resources.
+
+7. **Error Handling**: Implement robust error handling to gracefully handle service failures.
+
+8. **Monitoring Integration**: Set up monitoring for the integration points to detect and address issues quickly.
