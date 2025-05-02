@@ -1,11 +1,20 @@
-"""LLM communication adapter for terminal assistance"""
+"""LLM communication adapter for terminal assistance using enhanced tekton-llm-client"""
 
 import asyncio
 import json
 import logging
-import aiohttp
-import websockets
+import os
 from typing import Dict, Any, Optional, List, Callable, Awaitable, Tuple
+
+# Import enhanced tekton-llm-client features
+from tekton_llm_client import (
+    TektonLLMClient,
+    PromptTemplateRegistry, PromptTemplate, load_template,
+    JSONParser, parse_json, extract_json,
+    StreamHandler, collect_stream, stream_to_string,
+    StructuredOutputParser, OutputFormat,
+    ClientSettings, LLMSettings, load_settings, get_env
+)
 
 from ..utils.logging import setup_logging
 from ..utils.config import Config
@@ -15,8 +24,8 @@ logger = setup_logging()
 class LLMAdapter:
     """LLM adapter for terminal assistance
     
-    This adapter handles communication with LLMs through various backends.
-    It will be enhanced in the future to work with the Rhetor component.
+    This adapter handles communication with LLMs through the tekton-llm-client.
+    It provides command analysis and terminal assistance functionality.
     """
     
     def __init__(self, config_path: Optional[str] = None):
@@ -26,20 +35,103 @@ class LLMAdapter:
             config_path: Path to the configuration file
         """
         self.config = Config(config_path)
-        self.adapter_url = self.config.get("llm.adapter_url", "http://localhost:8300")
-        self.adapter_ws_url = self.config.get("llm.adapter_ws_url", "ws://localhost:8301")
-        self.provider = self.config.get("llm.provider", "claude")
-        self.model = self.config.get("llm.model", "claude-3-sonnet-20240229")
+        
+        # Initialize template registry
+        self.template_registry = PromptTemplateRegistry()
+        
+        # Load client settings from environment or config
+        self.llm_url = get_env("TEKTON_LLM_URL", self.config.get("llm.adapter_url", "http://localhost:8003"))
+        self.provider = get_env("TEKTON_LLM_PROVIDER", self.config.get("llm.provider", "anthropic"))
+        self.model = get_env("TEKTON_LLM_MODEL", self.config.get("llm.model", "claude-3-sonnet-20240229"))
+        
+        # System prompt from config
         self.system_prompt = self.config.get("llm.system_prompt", 
             "You are a terminal assistant that helps users with command-line tasks. "
             "Provide concise explanations and suggestions for terminal commands. "
             "Focus on being helpful, accurate, and security-conscious."
         )
         
-        self._session_contexts: Dict[str, List[Dict[str, str]]] = {}
-        self._ws_connection = None
-        self._connection_lock = asyncio.Lock()
+        # Initialize client settings
+        self.client_settings = ClientSettings(
+            component_id="terma.terminal",
+            base_url=self.llm_url,
+            provider_id=self.provider,
+            model_id=self.model,
+            timeout=30,
+            max_retries=2,
+            use_fallback=True
+        )
         
+        # Initialize LLM settings
+        self.llm_settings = LLMSettings(
+            temperature=0.7,
+            max_tokens=500,
+            top_p=0.95
+        )
+        
+        # Create LLM client
+        self.llm_client = None  # Will be initialized on first use
+        
+        # Initialize templates
+        self._load_templates()
+        
+        # Session contexts
+        self._session_contexts: Dict[str, List[Dict[str, str]]] = {}
+        
+    def _load_templates(self):
+        """Load prompt templates for Terma"""
+        # First try to load from standard locations
+        standard_dirs = [
+            "./prompt_templates",
+            "./templates",
+            "./terma/prompt_templates",
+            "./terma/templates"
+        ]
+        
+        for template_dir in standard_dirs:
+            if os.path.exists(template_dir):
+                self.template_registry.load_templates_from_directory(template_dir)
+                logger.info(f"Loaded templates from {template_dir}")
+        
+        # Add core templates
+        self.template_registry.register_template(
+            "command_analysis",
+            PromptTemplate(
+                template="Please explain this command concisely: {command}",
+                output_format=OutputFormat.TEXT
+            )
+        )
+        
+        self.template_registry.register_template(
+            "output_analysis",
+            PromptTemplate(
+                template="Please explain the output of this command: {command}\n\nOutput:\n{output}",
+                output_format=OutputFormat.TEXT
+            )
+        )
+        
+        self.template_registry.register_template(
+            "terminal_help",
+            PromptTemplate(
+                template="Help me with this terminal task: {task}",
+                output_format=OutputFormat.TEXT
+            )
+        )
+        
+    async def _get_client(self) -> TektonLLMClient:
+        """Get or initialize the LLM client
+        
+        Returns:
+            Initialized TektonLLMClient
+        """
+        if self.llm_client is None:
+            self.llm_client = TektonLLMClient(
+                settings=self.client_settings,
+                llm_settings=self.llm_settings
+            )
+            await self.llm_client.initialize()
+        return self.llm_client
+    
     def _get_session_context(self, session_id: str) -> List[Dict[str, str]]:
         """Get or create the conversation context for a session
         
@@ -100,24 +192,27 @@ class LLMAdapter:
         self.config.set("llm.provider", provider)
         self.config.set("llm.model", model)
         
+        # Update client settings
+        self.client_settings.provider_id = provider
+        self.client_settings.model_id = model
+        
+        # Reset client to ensure it uses the new settings
+        self.llm_client = None
+        
         logger.info(f"Set LLM provider to {provider} and model to {model}")
     
     async def get_available_providers(self) -> Dict[str, Dict[str, Any]]:
-        """Get all available LLM providers and their models from the LLM Adapter
+        """Get all available LLM providers and their models
         
         Returns:
             Dict of provider information
         """
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.adapter_url}/providers", timeout=2.0) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        return data.get("providers", {})
-                    else:
-                        logger.warning(f"Failed to get providers from LLM Adapter: {response.status}")
+            client = await self._get_client()
+            providers = await client.get_providers()
+            return providers.providers
         except Exception as e:
-            logger.warning(f"Error getting providers from LLM Adapter: {e}")
+            logger.warning(f"Error getting providers from LLM service: {e}")
         
         # Fallback to config
         return self.config.get_all_llm_providers()
@@ -140,22 +235,38 @@ class LLMAdapter:
         Returns:
             The LLM response, or None if an error occurred
         """
-        prompt = f"Please explain this command concisely: {command}"
         try:
-            # Add the command to the context
+            # Get template
+            template = self.template_registry.get_template("command_analysis")
+            
+            # Format template values
+            template_values = {
+                "command": command
+            }
+            
+            # Generate prompt
+            prompt = template.format(**template_values)
+            
+            # Add the prompt to the context
             self.add_message(session_id, prompt)
             
-            # Get the context for this session
-            context = self._get_session_context(session_id)
+            # Get system prompt
+            system_prompt = self.system_prompt
             
-            # Make a request to the LLM adapter
-            response = await self._request_llm_response(context, session_id)
+            # Get LLM client
+            client = await self._get_client()
+            
+            # Call LLM and get response
+            response = await client.generate_text(
+                prompt=prompt,
+                system_prompt=system_prompt
+            )
             
             # Add the response to the context
-            if response:
-                self.add_message(session_id, response, role="assistant")
+            if response.content:
+                self.add_message(session_id, response.content, role="assistant")
                 
-            return response
+            return response.content
         except Exception as e:
             logger.error(f"Error analyzing command: {e}")
             return f"Error analyzing command: {str(e)}"
@@ -175,204 +286,135 @@ class LLMAdapter:
         if len(output) > 4000:
             output = output[:2000] + "...[output truncated]..." + output[-2000:]
             
-        prompt = (
-            f"Please explain the output of this command: {command}\n\n"
-            f"Output:\n{output}"
-        )
-        
         try:
+            # Get template
+            template = self.template_registry.get_template("output_analysis")
+            
+            # Format template values
+            template_values = {
+                "command": command,
+                "output": output
+            }
+            
+            # Generate prompt
+            prompt = template.format(**template_values)
+            
             # Add the prompt to the context
             self.add_message(session_id, prompt)
             
-            # Get the context for this session
-            context = self._get_session_context(session_id)
+            # Get system prompt
+            system_prompt = self.system_prompt
             
-            # Make a request to the LLM adapter
-            response = await self._request_llm_response(context, session_id)
+            # Get LLM client
+            client = await self._get_client()
+            
+            # Call LLM and get response
+            response = await client.generate_text(
+                prompt=prompt,
+                system_prompt=system_prompt
+            )
             
             # Add the response to the context
-            if response:
-                self.add_message(session_id, response, role="assistant")
+            if response.content:
+                self.add_message(session_id, response.content, role="assistant")
                 
-            return response
+            return response.content
         except Exception as e:
             logger.error(f"Error analyzing output: {e}")
             return f"Error analyzing output: {str(e)}"
-    
-    async def _request_llm_response(self, context: List[Dict[str, str]], session_id: str) -> Optional[str]:
-        """Make a request to the LLM adapter
+            
+    async def stream_command_analysis(self, session_id: str, command: str, 
+                                     callback: Callable[[str], Awaitable[None]]) -> None:
+        """Stream command analysis to a callback
         
         Args:
-            context: The conversation context
             session_id: The terminal session ID
+            command: The command to analyze
+            callback: Async function to call with each chunk of content
+        """
+        try:
+            # Get template
+            template = self.template_registry.get_template("command_analysis")
+            
+            # Format template values
+            template_values = {
+                "command": command
+            }
+            
+            # Generate prompt
+            prompt = template.format(**template_values)
+            
+            # Add the prompt to the context
+            self.add_message(session_id, prompt)
+            
+            # Get system prompt
+            system_prompt = self.system_prompt
+            
+            # Get LLM client
+            client = await self._get_client()
+            
+            # Create streaming handler
+            stream_handler = StreamHandler(callback_fn=callback)
+            
+            # Call LLM with streaming
+            response_stream = await client.generate_text(
+                prompt=prompt,
+                system_prompt=system_prompt,
+                streaming=True
+            )
+            
+            # Process the stream
+            collected_response = await stream_handler.process_stream(response_stream)
+            
+            # Add the full response to the context
+            self.add_message(session_id, collected_response, role="assistant")
+            
+        except Exception as e:
+            logger.error(f"Error streaming command analysis: {e}")
+            await callback(f"Error analyzing command: {str(e)}")
+            
+    async def get_terminal_help(self, session_id: str, task: str) -> Optional[str]:
+        """Get help with a terminal task
+        
+        Args:
+            session_id: The terminal session ID
+            task: The task to get help with
             
         Returns:
             The LLM response, or None if an error occurred
         """
         try:
-            # Try to use the HTTP API first
-            return await self._request_http_llm_response(context)
-        except Exception as http_error:
-            logger.warning(f"HTTP request failed, trying WebSocket: {http_error}")
-            try:
-                # Fall back to WebSocket API
-                return await self._request_ws_llm_response(context, session_id)
-            except Exception as ws_error:
-                logger.error(f"WebSocket request also failed: {ws_error}")
-                
-                # Fall back to simulated response if both methods fail
-                return (
-                    f"I'm currently unable to connect to the LLM adapter service. "
-                    f"Please check the connection to the service at {self.adapter_url} "
-                    f"and make sure it's running properly."
-                )
-    
-    async def _request_http_llm_response(self, context: List[Dict[str, str]]) -> Optional[str]:
-        """Make a request to the LLM adapter using HTTP
-        
-        Args:
-            context: The conversation context
+            # Get template
+            template = self.template_registry.get_template("terminal_help")
             
-        Returns:
-            The LLM response, or None if an error occurred
-        """
-        async with aiohttp.ClientSession() as session:
-            # Construct the message payload
-            user_message = context[-1]["content"]  # Get the last user message
-            
-            payload = {
-                "message": user_message,
-                "context_id": "terma",
-                "streaming": False,
-                "options": {
-                    "model": self.model,
-                    "provider": self.provider,
-                    "temperature": 0.7,
-                    "max_tokens": 500
-                }
+            # Format template values
+            template_values = {
+                "task": task
             }
             
-            # Make the request
-            async with session.post(f"{self.adapter_url}/message", json=payload) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data.get("message", "No response from LLM adapter")
-                else:
-                    error_text = await response.text()
-                    raise Exception(f"HTTP error {response.status}: {error_text}")
-    
-    async def _request_ws_llm_response(self, context: List[Dict[str, str]], session_id: str) -> Optional[str]:
-        """Make a request to the LLM adapter using WebSocket
-        
-        Args:
-            context: The conversation context
-            session_id: The terminal session ID
+            # Generate prompt
+            prompt = template.format(**template_values)
             
-        Returns:
-            The LLM response, or None if an error occurred
-        """
-        # Acquire a lock to ensure only one connection attempt at a time
-        async with self._connection_lock:
-            # Check if we have an active connection
-            if self._ws_connection is None or self._ws_connection.closed:
-                try:
-                    # Connect to the WebSocket server
-                    self._ws_connection = await websockets.connect(self.adapter_ws_url)
-                    
-                    # Register with the server
-                    register_msg = {
-                        "type": "REGISTER",
-                        "source": "TERMA",
-                        "timestamp": asyncio.get_event_loop().time(),
-                        "payload": {
-                            "client_id": f"terma_{session_id}",
-                            "capabilities": ["llm_requests"]
-                        }
-                    }
-                    await self._ws_connection.send(json.dumps(register_msg))
-                    
-                    # Wait for registration response
-                    response = await self._ws_connection.recv()
-                    response_data = json.loads(response)
-                    
-                    if response_data.get("type") != "RESPONSE" or \
-                       "registered" not in response_data.get("payload", {}).get("status", ""):
-                        raise Exception(f"Failed to register with LLM adapter: {response_data}")
-                    
-                except Exception as e:
-                    logger.error(f"Failed to connect to WebSocket server: {e}")
-                    self._ws_connection = None
-                    raise
+            # Add the prompt to the context
+            self.add_message(session_id, prompt)
             
-            # Get the user message
-            user_message = context[-1]["content"]
+            # Get system prompt
+            system_prompt = self.system_prompt
             
-            # Send the LLM request
-            request_msg = {
-                "type": "LLM_REQUEST",
-                "source": "TERMA",
-                "timestamp": asyncio.get_event_loop().time(),
-                "payload": {
-                    "message": user_message,
-                    "context": "terma",
-                    "streaming": False,
-                    "options": {
-                        "model": self.model,
-                        "provider": self.provider,
-                        "temperature": 0.7,
-                        "max_tokens": 500
-                    }
-                }
-            }
+            # Get LLM client
+            client = await self._get_client()
             
-            try:
-                await self._ws_connection.send(json.dumps(request_msg))
+            # Call LLM and get response
+            response = await client.generate_text(
+                prompt=prompt,
+                system_prompt=system_prompt
+            )
+            
+            # Add the response to the context
+            if response.content:
+                self.add_message(session_id, response.content, role="assistant")
                 
-                # Wait for the response
-                full_response = ""
-                message_complete = False
-                
-                # Keep receiving messages until we get a response
-                while not message_complete:
-                    try:
-                        response = await asyncio.wait_for(self._ws_connection.recv(), timeout=30.0)
-                        response_data = json.loads(response)
-                        
-                        msg_type = response_data.get("type", "")
-                        
-                        if msg_type == "RESPONSE":
-                            # Got a complete response
-                            full_response = response_data.get("payload", {}).get("message", "")
-                            message_complete = True
-                            
-                        elif msg_type == "UPDATE":
-                            # Check if typing status update
-                            is_typing = response_data.get("payload", {}).get("isTyping", None)
-                            if is_typing is not None:
-                                continue
-                                
-                            # Check if it's a chunk update
-                            chunk = response_data.get("payload", {}).get("chunk", "")
-                            if chunk:
-                                full_response += chunk
-                                
-                            # Check if it's the final chunk
-                            done = response_data.get("payload", {}).get("done", False)
-                            if done:
-                                message_complete = True
-                                
-                        elif msg_type == "ERROR":
-                            # Got an error
-                            error_msg = response_data.get("payload", {}).get("error", "Unknown error")
-                            raise Exception(f"LLM adapter error: {error_msg}")
-                    except asyncio.TimeoutError:
-                        raise Exception("Timeout waiting for LLM adapter response")
-                
-                return full_response
-            except Exception as e:
-                logger.error(f"Error communicating with WebSocket server: {e}")
-                # Close the connection so we'll try to reconnect next time
-                if self._ws_connection:
-                    await self._ws_connection.close()
-                    self._ws_connection = None
-                raise
+            return response.content
+        except Exception as e:
+            logger.error(f"Error getting terminal help: {e}")
+            return f"Error getting terminal help: {str(e)}"
