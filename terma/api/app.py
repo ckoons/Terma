@@ -115,7 +115,8 @@ def get_websocket_server():
 def get_hermes_integration():
     """Get or create the Hermes integration"""
     if not hasattr(app.state, "hermes_integration"):
-        hermes_url = os.environ.get("HERMES_API_URL", "http://localhost:8000")
+        from ..utils.port_config import get_hermes_api_url
+        hermes_url = get_hermes_api_url()
         app.state.hermes_integration = HermesIntegration(
             api_url=hermes_url,
             session_manager=get_session_manager(),
@@ -483,29 +484,31 @@ async def launch_terminal(
     return HTMLResponse(content=html_content)
 
 # Server startup function
-async def start_server(host: str = "0.0.0.0", port: int = 8765, ws_port: int = None):
+async def start_server(host: str = "0.0.0.0", port: int = None, ws_port: int = None):
     """Start the FastAPI server and WebSocket server
     
     Args:
         host: Host to bind to
-        port: Port to bind the API server to
+        port: Port to bind the API server to (defaults to Terma's standard port)
         ws_port: Port to bind the WebSocket server to (defaults to None, which disables the WebSocket server)
     """
     import uvicorn
     import logging
     logger = logging.getLogger("terma")
     
+    # Use standardized port configuration
+    from ..utils.port_config import get_terma_port, get_terma_ws_port
+    
+    # Set default port using standardized configuration
+    if port is None:
+        port = get_terma_port()
+        logger.info(f"Using standard Terma port: {port}")
+    
     # Always check for WebSocket port in environment variables first
     if ws_port is None:
-        # Default to environment variable
-        import os
-        env_ws_port = os.environ.get('TERMA_WS_PORT')
-        if env_ws_port:
-            try:
-                ws_port = int(env_ws_port)
-                logger.info(f"Using WebSocket port {ws_port} from TERMA_WS_PORT environment variable")
-            except (ValueError, TypeError):
-                logger.warning(f"Invalid TERMA_WS_PORT value: {env_ws_port}, using default")
+        # Get from standardized configuration
+        ws_port = get_terma_ws_port()
+        logger.info(f"Using WebSocket port {ws_port} from standardized configuration")
     
     # Only start the WebSocket server if a port is available
     if ws_port is not None:
