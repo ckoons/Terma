@@ -14,6 +14,7 @@ from ..core.session_manager import SessionManager
 from ..utils.logging import setup_logging
 from .websocket import TerminalWebSocketServer
 from ..integrations.hermes_integration import HermesIntegration
+from .fastmcp_endpoints import mcp_router
 
 logger = setup_logging()
 
@@ -91,6 +92,9 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
+
+# Include MCP router
+app.include_router(mcp_router, tags=["mcp"])
 
 # Application startup time
 START_TIME = time.time()

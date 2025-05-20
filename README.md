@@ -15,6 +15,7 @@ Terma is an advanced terminal system designed for integration with the Tekton ec
 - **Multiple LLM Providers**: Support for Claude, OpenAI, and other LLM services
 - **Markdown Rendering**: Beautiful rendering of LLM responses with syntax highlighting
 - **Single Port Architecture**: Compatible with Tekton's unified port management system
+- **FastMCP Integration**: Comprehensive Model Context Protocol support for external integrations
 
 ## Quick Start
 
@@ -99,6 +100,65 @@ Terma interacts with other Tekton components through:
 1. **Hermes**: For service discovery and message passing
 2. **LLM Adapter**: For AI-assisted terminal capabilities 
 3. **Hephaestus UI**: For visual presentation and user interaction
+
+## FastMCP Integration
+
+Terma provides comprehensive FastMCP (Model Context Protocol) integration for external systems to interact programmatically with terminal management, LLM integration, and system integration capabilities.
+
+### MCP Capabilities
+
+- **Terminal Management**: Create, manage, and monitor terminal sessions (6 tools)
+- **LLM Integration**: AI-powered terminal assistance and analysis (6 tools)  
+- **System Integration**: Integration with Tekton ecosystem components (4 tools)
+
+### Key Features
+
+- **16 Specialized Tools**: Comprehensive terminal operations and management
+- **4 Predefined Workflows**: Common terminal automation patterns
+- **REST API Interface**: Standard HTTP endpoints for tool execution
+- **Comprehensive Testing**: Full test suite with bash and Python clients
+
+### Quick MCP Usage
+
+```bash
+# Get available MCP tools
+curl http://localhost:8765/api/mcp/v2/tools
+
+# Create a terminal session via MCP
+curl -X POST http://localhost:8765/api/mcp/v2/tools/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool_name": "create_terminal_session",
+    "arguments": {
+      "shell_command": "/bin/bash",
+      "session_name": "mcp-session"
+    }
+  }'
+
+# Get AI-powered command assistance
+curl -X POST http://localhost:8765/api/mcp/v2/tools/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool_name": "provide_command_assistance", 
+    "arguments": {
+      "command_query": "How to find files modified today?",
+      "shell_type": "bash",
+      "assistance_level": "detailed"
+    }
+  }'
+```
+
+### Testing MCP Integration
+
+```bash
+# Run comprehensive test suite
+./examples/run_fastmcp_test.sh
+
+# Run Python async test client
+python3 examples/test_fastmcp.py --save-results
+```
+
+For detailed MCP integration documentation, see [MCP_INTEGRATION.md](./MCP_INTEGRATION.md).
 
 ## System Requirements
 
