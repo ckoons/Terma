@@ -278,7 +278,7 @@ async def hermes_message(
     logger.info(f"Received message from Hermes: {message.command}")
     
     # Handle the message
-    response = await hermes_integration.handle_message(message.dict())
+    response = await hermes_integration.handle_message(message.model_dump())
     return response
 
 @app.post("/api/events", response_model=StatusResponse)
