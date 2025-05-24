@@ -119,8 +119,8 @@ def get_websocket_server():
 def get_hermes_integration():
     """Get or create the Hermes integration"""
     if not hasattr(app.state, "hermes_integration"):
-        from ..utils.port_config import get_hermes_api_url
-        hermes_url = get_hermes_api_url()
+        from tekton.utils.port_config import get_hermes_url
+        hermes_url = get_hermes_url()
         app.state.hermes_integration = HermesIntegration(
             api_url=hermes_url,
             session_manager=get_session_manager(),
@@ -501,7 +501,7 @@ async def start_server(host: str = "0.0.0.0", port: int = None, ws_port: int = N
     logger = logging.getLogger("terma")
     
     # Use standardized port configuration
-    from ..utils.port_config import get_terma_port, get_terma_ws_port
+    from tekton.utils.port_config import get_terma_port, get_terma_ws_port
     
     # Set default port using standardized configuration
     if port is None:
