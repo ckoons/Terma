@@ -11,10 +11,9 @@ from tekton.mcp.fastmcp.schema import MCPCapability
 
 class TerminalManagementCapability(MCPCapability):
     """Capability for creating, managing, and monitoring terminal sessions."""
-    
-    name = "terminal_management"
-    description = "Create, manage, and monitor terminal sessions and commands"
-    version = "1.0.0"
+
+    name: str = "terminal_management"
+    description: str = "Create, manage, and monitor terminal sessions and commands"
     
     @classmethod
     def get_supported_operations(cls) -> List[str]:
@@ -47,10 +46,9 @@ class TerminalManagementCapability(MCPCapability):
 
 class LLMIntegrationCapability(MCPCapability):
     """Capability for AI-powered terminal assistance and analysis."""
-    
-    name = "llm_integration"
-    description = "Provide AI-powered assistance and analysis for terminal operations"
-    version = "1.0.0"
+
+    name: str = "llm_integration"
+    description: str = "Provide AI-powered assistance and analysis for terminal operations"
     
     @classmethod
     def get_supported_operations(cls) -> List[str]:
@@ -81,10 +79,9 @@ class LLMIntegrationCapability(MCPCapability):
 
 class SystemIntegrationCapability(MCPCapability):
     """Capability for integrating terminal sessions with Tekton ecosystem."""
-    
-    name = "system_integration"
-    description = "Integrate terminal sessions with Tekton ecosystem and system components"
-    version = "1.0.0"
+
+    name: str = "system_integration"
+    description: str = "Integrate terminal sessions with Tekton ecosystem and system components"
     
     @classmethod
     def get_supported_operations(cls) -> List[str]:

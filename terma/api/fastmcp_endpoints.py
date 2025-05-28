@@ -48,9 +48,9 @@ fastmcp_server = FastMCPServer(
 )
 
 # Register capabilities and tools
-fastmcp_server.register_capability(TerminalManagementCapability)
-fastmcp_server.register_capability(LLMIntegrationCapability)
-fastmcp_server.register_capability(SystemIntegrationCapability)
+fastmcp_server.register_capability(TerminalManagementCapability())
+fastmcp_server.register_capability(LLMIntegrationCapability())
+fastmcp_server.register_capability(SystemIntegrationCapability())
 
 # Register all tools
 for tool in terminal_management_tools + llm_integration_tools + system_integration_tools:

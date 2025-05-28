@@ -500,19 +500,22 @@ async def start_server(host: str = "0.0.0.0", port: int = None, ws_port: int = N
     import logging
     logger = logging.getLogger("terma")
     
-    # Use standardized port configuration
-    from tekton.utils.port_config import get_terma_port, get_terma_ws_port
-    
-    # Set default port using standardized configuration
+    # Use environment variables for port configuration
+    import os
+
+    # Set default port using environment or fallback
     if port is None:
-        port = get_terma_port()
-        logger.info(f"Using standard Terma port: {port}")
-    
+        port = int(os.environ.get("TERMA_PORT", 8004))
+        logger.info(f"Using Terma port: {port}")
+
     # Always check for WebSocket port in environment variables first
     if ws_port is None:
-        # Get from standardized configuration
-        ws_port = get_terma_ws_port()
-        logger.info(f"Using WebSocket port {ws_port} from standardized configuration")
+        # Use environment or disable WebSocket server
+        ws_port = int(os.environ.get("TERMA_WS_PORT", 8006)) if os.environ.get("TERMA_WS_PORT") else None
+        if ws_port:
+            logger.info(f"Using WebSocket port {ws_port} from environment")
+        else:
+            logger.info("WebSocket server disabled (no TERMA_WS_PORT configured)")
     
     # Only start the WebSocket server if a port is available
     if ws_port is not None:
