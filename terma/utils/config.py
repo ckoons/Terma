@@ -83,8 +83,8 @@ class Config:
             "llm": {
                 "provider": "claude",
                 "model": "claude-3-sonnet-20240229",
-                "adapter_url": os.environ.get("LLM_ADAPTER_URL", "http://localhost:8300"),
-                "adapter_ws_url": os.environ.get("LLM_ADAPTER_WS_URL", "ws://localhost:8301"),
+                "adapter_url": os.environ.get("RHETOR_URL", "http://localhost:8003"),
+                "adapter_ws_url": os.environ.get("RHETOR_WS_URL", "ws://localhost:8003/ws"),
                 "system_prompt": "You are a terminal assistant that helps users with command-line tasks. Provide concise explanations and suggestions for terminal commands. Focus on being helpful, accurate, and security-conscious."
             }
         }

@@ -1049,9 +1049,9 @@ class TermaTerminal {
         providerModelSelect.appendChild(loadingOption);
 
         try {
-            // For direct access to LLM adapter (alternative method)
-            const llmAdapterUrl = "http://localhost:8300";
-            debugLog(`Attempting direct connection to LLM Adapter at ${llmAdapterUrl}/providers`, 'debug', {
+            // For direct access to Rhetor (alternative method)
+            const rhetorUrl = "http://localhost:8003";
+            debugLog(`Attempting direct connection to Rhetor at ${rhetorUrl}/api/providers`, 'debug', {
                 component: 'TermaTerminal'
             });
             
@@ -1062,7 +1062,7 @@ class TermaTerminal {
             
             try {
                 // Try direct connection to LLM adapter
-                response = await fetch(`${llmAdapterUrl}/providers`);
+                response = await fetch(`${rhetorUrl}/api/providers`);
                 if (response.ok) {
                     data = await response.json();
                     debugLog('Direct LLM Adapter connection successful', 'success', {
@@ -1181,13 +1181,13 @@ class TermaTerminal {
             let data;
             let useDirectAccess = false;
             
-            // Try direct connection to LLM adapter first
-            const llmAdapterUrl = "http://localhost:8300";
+            // Try direct connection to Rhetor first
+            const rhetorUrl = "http://localhost:8003";
             
             try {
                 // The LLM Adapter doesn't have a specific endpoint for models by provider
                 // but we can use the providers endpoint and filter the results
-                const directResponse = await fetch(`${llmAdapterUrl}/providers`);
+                const directResponse = await fetch(`${rhetorUrl}/api/providers`);
                 
                 if (directResponse.ok) {
                     const providerData = await directResponse.json();
@@ -1254,10 +1254,10 @@ class TermaTerminal {
         });
         
         try {
-            // First try direct connection to LLM adapter
-            const llmAdapterUrl = "http://localhost:8300";
+            // First try direct connection to Rhetor
+            const rhetorUrl = "http://localhost:8003";
             
-            debugLog(`Attempting direct connection to LLM Adapter at ${llmAdapterUrl}/provider`, 'debug', {
+            debugLog(`Attempting direct connection to Rhetor at ${rhetorUrl}/api/provider`, 'debug', {
                 component: 'TermaTerminal'
             });
             
@@ -1277,7 +1277,7 @@ class TermaTerminal {
             
             try {
                 // Try through direct LLM Adapter connection
-                const directResponse = await fetch(`${llmAdapterUrl}/provider`, {
+                const directResponse = await fetch(`${rhetorUrl}/api/provider`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
