@@ -3,8 +3,12 @@
 import asyncio
 import logging
 import os
+import sys
 import time
 from typing import Dict, List, Optional, Any
+
+# Add parent directory to path for shared utilities
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from fastapi import FastAPI, WebSocket, HTTPException, Depends, WebSocketDisconnect, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
@@ -119,7 +123,7 @@ def get_websocket_server():
 def get_hermes_integration():
     """Get or create the Hermes integration"""
     if not hasattr(app.state, "hermes_integration"):
-        from tekton.utils.port_config import get_hermes_url
+        from tekton.utils.port_config import get_hermes_url, get_terma_port
         hermes_url = get_hermes_url()
         app.state.hermes_integration = HermesIntegration(
             api_url=hermes_url,
@@ -503,9 +507,10 @@ async def start_server(host: str = "0.0.0.0", port: int = None, ws_port: int = N
     # Use environment variables for port configuration
     import os
 
-    # Set default port using environment or fallback
+    # Set default port using centralized config
     if port is None:
-        port = int(os.environ.get("TERMA_PORT", 8004))
+        from tekton.utils.port_config import get_terma_port
+        port = get_terma_port()
         logger.info(f"Using Terma port: {port}")
 
     # Always check for WebSocket port in environment variables first
