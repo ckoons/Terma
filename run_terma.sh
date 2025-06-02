@@ -25,7 +25,6 @@ fi
 cd "$SCRIPT_DIR"
 
 # Set environment variables
-export TERMA_PORT=8004
 export TERMA_WS_PORT=8767
 export PYTHONPATH="$SCRIPT_DIR:$TEKTON_ROOT:$PYTHONPATH"
 export REGISTER_WITH_HERMES=1
