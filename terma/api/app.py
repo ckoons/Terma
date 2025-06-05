@@ -10,17 +10,23 @@ from typing import Dict, List, Optional, Any
 # Add parent directory to path for shared utilities
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+# Add Tekton root to path for shared imports
+tekton_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+if tekton_root not in sys.path:
+    sys.path.insert(0, tekton_root)
+
 from fastapi import FastAPI, WebSocket, HTTPException, Depends, WebSocketDisconnect, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from ..core.session_manager import SessionManager
-from ..utils.logging import setup_logging
 from .websocket import TerminalWebSocketServer
 from ..integrations.hermes_integration import HermesIntegration
 from .fastmcp_endpoints import mcp_router
 
-logger = setup_logging()
+# Use shared logging setup
+from shared.utils.logging_setup import setup_component_logging
+logger = setup_component_logging("terma")
 
 # Models
 class SessionCreate(BaseModel):
