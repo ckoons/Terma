@@ -24,9 +24,12 @@ fi
 # Ensure we're in the correct directory
 cd "$SCRIPT_DIR"
 
+# Set up environment and Python path
+source "$TEKTON_ROOT/shared/utils/setup_env.sh"
+setup_tekton_env "$SCRIPT_DIR" "$TEKTON_ROOT"
+
 # Set environment variables
 export TERMA_WS_PORT=8767
-export PYTHONPATH="$SCRIPT_DIR:$TEKTON_ROOT:$PYTHONPATH"
 export REGISTER_WITH_HERMES=1
 
 # Create log directories
