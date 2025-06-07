@@ -33,7 +33,8 @@ export TERMA_WS_PORT=8767
 export REGISTER_WITH_HERMES=1
 
 # Create log directories
-mkdir -p "$HOME/.tekton/logs"
+LOG_DIR="${TEKTON_LOG_DIR:-$TEKTON_ROOT/.tekton/logs}"
+mkdir -p "$LOG_DIR"
 
 # Error handling function
 handle_error() {
@@ -57,7 +58,7 @@ sleep 2
 
 # Start the Terma service
 echo -e "${YELLOW}Starting Terma API server...${RESET}"
-python -m terma.api.app --port $TERMA_PORT > "$HOME/.tekton/logs/terma.log" 2>&1 &
+python -m terma.api.app --port $TERMA_PORT > "$LOG_DIR/terma.log" 2>&1 &
 TERMA_PID=$!
 
 # Trap signals for graceful shutdown
@@ -76,7 +77,7 @@ for i in {1..30}; do
     # Check if the process is still running
     if ! kill -0 $TERMA_PID 2>/dev/null; then
         echo -e "${RED}Terma process terminated unexpectedly${RESET}"
-        cat "$HOME/.tekton/logs/terma.log"
+        cat "$LOG_DIR/terma.log"
         handle_error "Terma failed to start"
     fi
     
