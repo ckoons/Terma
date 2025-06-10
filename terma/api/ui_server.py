@@ -1,6 +1,7 @@
 """UI server for Terma terminal"""
 
 import os
+import sys
 import logging
 from pathlib import Path
 from fastapi import FastAPI, Request
@@ -10,6 +11,13 @@ from fastapi.templating import Jinja2Templates
 
 import logging
 from ..utils.logging import setup_logging
+
+# Add Tekton root to path for shared imports
+tekton_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+if tekton_root not in sys.path:
+    sys.path.append(tekton_root)
+
+from shared.utils.env_config import get_component_config
 
 # Set up logging with DEBUG level for troubleshooting
 logger = setup_logging(level=logging.DEBUG)
@@ -95,8 +103,9 @@ async def start_ui_server(host: str = None, port: int = None):
     
     if port is None:
         # Use TERMA_WS_PORT as the default - consistent with WebSocket server
-        port = int(os.environ.get("TERMA_WS_PORT", "8767"))
-        logger.info(f"Using port {port} from TERMA_WS_PORT environment variable")
+        config = get_component_config()
+        port = config.terma.ws_port if hasattr(config, 'terma') else int(os.environ.get("TERMA_WS_PORT"))
+        logger.info(f"Using port {port} from configuration")
     import uvicorn
     import os
     

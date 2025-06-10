@@ -522,7 +522,10 @@ async def start_server(host: str = "0.0.0.0", port: int = None, ws_port: int = N
     # Always check for WebSocket port in environment variables first
     if ws_port is None:
         # Use environment or disable WebSocket server
-        ws_port = int(os.environ.get("TERMA_WS_PORT", 8006)) if os.environ.get("TERMA_WS_PORT") else None
+        # Add import for get_component_config
+        from shared.utils.env_config import get_component_config
+        config = get_component_config()
+        ws_port = config.terma.ws_port if hasattr(config, 'terma') else (int(os.environ.get("TERMA_WS_PORT")) if os.environ.get("TERMA_WS_PORT") else None)
         if ws_port:
             logger.info(f"Using WebSocket port {ws_port} from environment")
         else:

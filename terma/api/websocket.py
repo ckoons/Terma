@@ -3,12 +3,21 @@
 import asyncio
 import json
 import logging
+import os
+import sys
 import re
 import uuid
 from typing import Dict, Any, Set, Optional, Callable, List
 
 import websockets
 from websockets.server import WebSocketServerProtocol
+
+# Add Tekton root to path for shared imports
+tekton_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+if tekton_root not in sys.path:
+    sys.path.append(tekton_root)
+
+from shared.utils.env_config import get_component_config
 
 from ..core.session_manager import SessionManager
 from ..utils.logging import setup_logging
@@ -327,8 +336,9 @@ class TerminalWebSocketServer:
         
         if port is None:
             # Use TERMA_WS_PORT as the default
-            port = int(os.environ.get("TERMA_WS_PORT", "8767"))
-            logger.info(f"Using port {port} from TERMA_WS_PORT environment variable")
+            config = get_component_config()
+            port = config.terma.ws_port if hasattr(config, 'terma') else int(os.environ.get("TERMA_WS_PORT"))
+            logger.info(f"Using port {port} from configuration")
         # Debug port availability
         import socket
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
